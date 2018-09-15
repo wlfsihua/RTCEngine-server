@@ -5,6 +5,7 @@ import * as path from 'path'
 import * as http from 'http'
 import * as net from 'net'
 import * as cors from 'cors'
+import * as cluster from 'cluster'
 import errorHandler = require('errorhandler')
 import methodOverride = require('method-override')
 
@@ -23,12 +24,11 @@ import { EventEmitter } from 'events'
 export default class Server extends EventEmitter {
 
     public app: express.Application
-    public server: http.Server
     public endpoint: any
     public rooms: Map<string, Room> = new Map()
     public peers: Map<string, Peer> = new Map()
-    public io: socketio.Server
-
+    public socketServer: socketio.Server
+    private httpServer: http.Server
 
     constructor() {
         //create expressjs application
@@ -36,28 +36,15 @@ export default class Server extends EventEmitter {
 
         this.app = express()
 
-        //create http server 
-        this.server = this.app.listen(config.server.port, config.server.host)
-
-        
-        //create media server
-        this.endpoint = MediaServer.createEndpoint(config.media.endpoint)
-
-        console.log(this.endpoint.bundle.GetLocalPort())
-       
-        //configure application
+        // //configure application
         this.config()
 
-        //add routes
+        // //add routes
         this.routes()
-
-        //socketio
-        this.startSocketio()
-
     }
 
 
-    public config() {
+    private config() {
         //add static paths
 
         this.app.use(express.static('public'))
@@ -88,15 +75,15 @@ export default class Server extends EventEmitter {
         this.app.use(apiRouter)
     }
 
-    private startSocketio() {
-        
-        this.io = socketio({
+    private startSocketServer() {
+
+        this.socketServer = socketio({
             pingInterval: 10000,
             pingTimeout: 5000,
             transports: ['websocket'] 
         })
 
-        this.io.on('connection', async (socket:SocketIO.Socket) => {
+        this.socketServer.on('connection', async (socket:SocketIO.Socket) => {
             let peer = new Peer(socket,this)
             this.peers.set(peer.id, peer)
 
@@ -107,8 +94,43 @@ export default class Server extends EventEmitter {
             })
         })
 
-        this.io.attach(this.server)
+        this.socketServer.attach(this.httpServer)
     }
+
+    private startMediaServer() {
+
+        this.endpoint = MediaServer.createEndpoint(config.media.endpoint)
+        
+        console.log('start mediaserver')
+    }
+
+    public start(port: number, hostname:string, callback?:Function): Server {
+
+
+        if (cluster.isMaster) {
+
+            this.httpServer = this.app.listen(port, hostname, callback)
+
+            this.startSocketServer()
+
+            for(let i = 0; i < config.media.numWorkers; i++) {
+                cluster.fork()
+            }
+
+            cluster.on('exit', (worker:cluster.Worker,code:number, signal:string) => {
+
+                console.log('process exit ', worker.id )
+            })
+
+        } else {
+
+            this.startMediaServer()
+
+        }
+
+        return this
+    }
+
 
     public getRooms(): Room[] {
         return Array.from(this.rooms.values())

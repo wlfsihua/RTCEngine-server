@@ -2,10 +2,7 @@
 const CodecInfo	= require('semantic-sdp').CodecInfo
 
 export default {
-    debug: '*',
     server: {
-        port: 3888,
-        host: '0.0.0.0',
         secret: 'test_secret',
         externalUrl: 'http://192.168.202.208:3888/'
     },
@@ -15,15 +12,16 @@ export default {
     },
     // to disable recorder  comment this
     recorder: {
-        enable: true,
+        enable: false,
         refreshPeriod: 10000  // ten seconds
     },
     media: {
         debug: true,
         endpoint: '192.168.202.208',
+        numWorkers: 1,    // number of media workers 
         ultraDebug: true,
         rtcMinPort: 10000,
-        rtcMaxPort: 10002,
+        rtcMaxPort: 10050,
         capabilities: {
             audio: {
                 codecs: ['opus'],
