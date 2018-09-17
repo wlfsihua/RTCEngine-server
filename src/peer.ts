@@ -1,7 +1,6 @@
 import { EventEmitter } from 'events'
 import * as uuid from 'uuid'
 
-import Message from './message'
 import Room from './room'
 import Server from './server'
 import config from './config'
@@ -130,14 +129,6 @@ class Peer extends EventEmitter {
         this.outgoingStreams.clear()
 
         this.emit('close')
-    }
-
-    public async send(msg: any) {
-        try {
-            this.socket.send(JSON.stringify(msg))
-        } catch (error) {
-            log.debug('peer send error', error)
-        }
     }
 
     public getIncomingStreams(): any {

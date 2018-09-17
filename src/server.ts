@@ -1,9 +1,7 @@
 import * as bodyParser from 'body-parser'
 import * as cookieParser from 'cookie-parser'
 import * as express from 'express'
-import * as path from 'path'
 import * as http from 'http'
-import * as net from 'net'
 import * as cors from 'cors'
 import * as cluster from 'cluster'
 import errorHandler = require('errorhandler')
@@ -29,6 +27,10 @@ export default class Server extends EventEmitter {
     public peers: Map<string, Peer> = new Map()
     public socketServer: socketio.Server
     private httpServer: http.Server
+
+
+    private _rooms: Map<string, number> = new Map()
+    private 
 
     constructor() {
         //create expressjs application
@@ -84,6 +86,7 @@ export default class Server extends EventEmitter {
         })
 
         this.socketServer.on('connection', async (socket:SocketIO.Socket) => {
+
             let peer = new Peer(socket,this)
             this.peers.set(peer.id, peer)
 
@@ -97,7 +100,7 @@ export default class Server extends EventEmitter {
         this.socketServer.attach(this.httpServer)
     }
 
-    private startMediaServer() {
+    private startMediaWorker() {
 
         this.endpoint = MediaServer.createEndpoint(config.media.endpoint)
         
@@ -124,17 +127,13 @@ export default class Server extends EventEmitter {
 
         } else {
 
-            this.startMediaServer()
-
+            this.startMediaWorker()
         }
 
         return this
     }
 
-
-    public getRooms(): Room[] {
-        return Array.from(this.rooms.values())
-    }
+    
 
     public getRoom(room: string): Room {
 

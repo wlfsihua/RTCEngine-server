@@ -25,7 +25,7 @@ class Message {
         message.data = object.data || {}
         return message
     }
-
+    
     static messageFactory(params:any): Message {
             
         let message = new Message()
