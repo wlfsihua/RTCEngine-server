@@ -6,6 +6,7 @@ import Room from './room'
 import Peer from './peer'
 
 import config from '../config'
+import Message from '../message'
 
 const MediaServer = require('medooze-media-server')
 
@@ -26,7 +27,6 @@ export default class MediaWorker extends EventEmitter {
         this.worker = worker
         this.id = worker.id
 
-
         worker.on('disconnect', () => {
 
         })
@@ -45,9 +45,68 @@ export default class MediaWorker extends EventEmitter {
             console.log('online ', worker.id)
         })
 
-        worker.on('message', (message:any) => {
-            // type   data
-            
+        worker.on('message', async (mess:any) => {
+
+            let message = Message.messageFactory(mess)
+
+            if (message.type === 'newpeer') {
+
+                const peer = new Peer(message.peer,this)
+                this.peers.set(peer.getId(), peer)
+
+                peer.on('close', () => {
+                    this.peers.delete(peer.getId())
+                })
+            }
+
+            let peer = this.peers.get(message.peer)
+            let room = this.rooms.get(message.room)
+
+            if (message.type === 'join') {
+
+                if(!room) {
+                    room = new Room(message.room)
+                    this.rooms.set(room.getId(), room)
+                }
+
+                peer.init(message.data, room)
+
+                room.addPeer(peer)
+
+                const streams = room.getStreams()
+
+                for (let stream of streams) {
+                    peer.addOutgoingStream(stream, false)
+                }
+
+                let reply = Message.messageFactory({
+                    room: room.getId(),
+                    peer: peer.getId(),
+                    type: 'joined',
+                    data: {
+                        sdp: peer.getLocalSdp().toString(),
+                        
+                    }
+                })
+
+            }
+
+            if (message.type === 'addStream') {
+
+            }
+
+            if (message.type === 'removeStream') {
+
+            }
+
+            if (message.type === 'configure') {
+
+            }
+
+            if (message.type === 'leave') {
+
+            }
+
         })
 
     }

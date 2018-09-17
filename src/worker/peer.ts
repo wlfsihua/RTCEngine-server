@@ -39,11 +39,11 @@ class Peer extends EventEmitter {
     private transport: any
     private closed: boolean 
 
-    constructor(worker:MediaWorker) {
+    constructor(peerId:string, worker:MediaWorker) {
         super()
 
         this.closed = false
-
+        this.userId = peerId
         this.mediaWorker = this.mediaWorker
     }
 
@@ -67,11 +67,12 @@ class Peer extends EventEmitter {
         return this.outgoingStreams.values()
     }
 
-    public init(data:any) {
+    public init(data:any, room:Room) {
 
         this.roomId = data.room
         this.userId = data.user
-
+        this.room = room
+        
         const offer = SDPInfo.process(data.sdp)
 
         if ('planb' in data) {
