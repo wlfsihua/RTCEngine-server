@@ -54,7 +54,36 @@ apiRouter.post('/api/generateToken', async (req: Request, res: Response) => {
 apiRouter.options('/api/config', cors())
 apiRouter.post('/api/config', async (req: Request, res:Response) => {
 
+    let appkey = req.body.appkey
+    let room =  req.body.room
+    let user = req.body.user
+
+    let token = req.body.token
+
+    // todo 
+    // vetify the token 
+
+    let iceServers = []
+
+    for (let server of config.iceServers) {
+        let iceServer = turn.genRestTurn(server.host, server.port, server.transports, server.secret)
+        iceServers.push(iceServer)
+    }
+
+    let wsUrl = config.server.externalUrl
     
+    let data = {
+        wsUrl: wsUrl,
+        iceServers: iceServers,
+        iceTransportPolicy: config.media.iceTransportPolicy
+    }
+
+    res.json({
+        s: 10000,
+        d: data,
+        e: ''
+    })
+
 })
 
 
