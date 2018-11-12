@@ -6,13 +6,11 @@ const MediaServer = require('medooze-media-server')
 
 dotenv.config()
 
-import Server from './src/server'
+import server from './src/server'
 
 // MediaServer.enableDebug(true);
 // MediaServer.enableUltraDebug(true);
 
-
-const server = new Server({})
 
 server.start(3888, '127.0.0.1', () => {
     console.log('start')

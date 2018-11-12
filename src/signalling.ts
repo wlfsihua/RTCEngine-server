@@ -13,7 +13,7 @@ const TrackInfo = SemanticSDP.TrackInfo
 const Direction = SemanticSDP.Direction
 const CodecInfo = SemanticSDP.CodecInfo
 
-import Server from './server'
+import server from './server'
 import Room from './room'
 import Peer from './peer'
 import config from './config'
@@ -26,7 +26,7 @@ const socketServer = socketio({
 })
 
 
-const setupSocketServer = async (server: Server) => {
+const setupSocketServer = async () => {
 
     socketServer.on('connection', async (socket: SocketIO.Socket) => {
 
@@ -43,7 +43,7 @@ const setupSocketServer = async (server: Server) => {
             room = server.Room(roomId)
         }
 
-        const peer = new Peer(userId, server)
+        const peer = new Peer(userId)
 
         socket.on('join', async (data: any, callback?: Function) => {
 
@@ -162,7 +162,7 @@ const setupSocketServer = async (server: Server) => {
         socket.on('message', async (data: any, callback?: Function) => {
             socket.to(room.getId()).emit('message', data)
         })
-
+        
         socket.on('disconnect', async () => {
             socket.to(room.getId()).emit('peerRemoved', {
                 peer: peer.dumps()
@@ -171,6 +171,7 @@ const setupSocketServer = async (server: Server) => {
             peer.close()
         })
     })
+
 }
 
 

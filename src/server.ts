@@ -18,7 +18,8 @@ import apiRouter from './api'
 import socketHandle from './signalling'
 import { EventEmitter } from 'events'
 
-export default class Server extends EventEmitter {
+
+class Server extends EventEmitter {
 
     private app: express.Application
     private httpServer: http.Server
@@ -47,7 +48,7 @@ export default class Server extends EventEmitter {
         this.startSocketServer()
 
     }
-
+    
     private config() {
 
         //add static paths
@@ -82,8 +83,7 @@ export default class Server extends EventEmitter {
     private startSocketServer() {
 
         socketHandle.socketServer.attach(this.httpServer)
-
-        socketHandle.setupSocketServer(this)
+        socketHandle.setupSocketServer()
     }
 
     public getRooms(): Room[] {
@@ -114,3 +114,8 @@ export default class Server extends EventEmitter {
         return info
     }
 }
+
+
+const server = new Server({})
+
+export default server

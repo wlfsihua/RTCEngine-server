@@ -1,7 +1,6 @@
 import { EventEmitter } from 'events'
 
 import Room from './room'
-import Server from './server'
 import config from './config'
 import Logger from './logger'
 
@@ -38,14 +37,12 @@ class Peer extends EventEmitter {
     private localSdp: any
     private remoteSdp: any
 
-    private server: Server
     private transport: any
 
 
-    constructor(peerId: string, server: Server) {
+    constructor(peerId: string) {
         super()
 
-        this.server = server
         this.userId = peerId
 
     }
