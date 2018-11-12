@@ -15,14 +15,14 @@ class Room extends EventEmitter {
     private activeSpeakerDetector: any
     private capabilities:any
 
-    constructor(roomId:string, capabilities:any) {
+    constructor(roomId:string, capabilities:any, endpoint:string) {
         super()
 
         this.roomId = roomId
         this.closed = false
         this.peers = new Map()
         this.tracksMap = new Map()
-        this.endpoint = MediaServer.createEndpoint('')
+        this.endpoint = MediaServer.createEndpoint(endpoint)
         this.capabilities = capabilities
         this.activeSpeakerDetector = MediaServer.createActiveSpeakerDetector()
         this.activeSpeakerDetector.setMinChangePeriod(100)
@@ -71,7 +71,7 @@ class Room extends EventEmitter {
         }
         return streams
     }
-    
+
     addPeer(peer: Peer) {
 
         if (this.peers.has(peer.getId())) {

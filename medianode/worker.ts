@@ -68,7 +68,7 @@ class Worker extends EventEmitter {
 
             const capabilities = msg.data.capabilities
 
-            const room = new Room(msg.room, capabilities)
+            const room = new Room(msg.room, capabilities, this.params.endpoint)
             this.rooms.set(room.getId(), room)
 
             room.on('close', () => {
@@ -200,8 +200,10 @@ class Worker extends EventEmitter {
         for(let room of this.rooms.values()) {
             room.close()
         }
-        
+
         this.rooms.clear()
 
     }
 }
+
+export default Worker

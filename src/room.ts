@@ -18,7 +18,7 @@ export default class Room extends EventEmitter {
     private tracksMap: Map<string, string>
     private endpoint: any
     private activeSpeakerDetector: any
-
+    
     constructor(room: string) {
 
         super()
