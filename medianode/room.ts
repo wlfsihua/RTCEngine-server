@@ -13,9 +13,9 @@ class Room extends EventEmitter {
     private endpoint: any
     private tracksMap: Map<string, string>
     private activeSpeakerDetector: any
-    
+    private capabilities:any
 
-    constructor(roomId:string) {
+    constructor(roomId:string, capabilities:any) {
         super()
 
         this.roomId = roomId
@@ -23,6 +23,7 @@ class Room extends EventEmitter {
         this.peers = new Map()
         this.tracksMap = new Map()
         this.endpoint = MediaServer.createEndpoint('')
+        this.capabilities = capabilities
         this.activeSpeakerDetector = MediaServer.createActiveSpeakerDetector()
         this.activeSpeakerDetector.setMinChangePeriod(100)
 
@@ -57,6 +58,20 @@ class Room extends EventEmitter {
         return this.peers.get(peer)
     }
 
+    getCapabilities() {
+        return this.capabilities
+    }
+
+    getIncomingStreams(): Map<string, any> {
+        const streams = new Map()
+        for (let peer of this.peers.values()) {
+            for (let stream of peer.getIncomingStreams().values()) {
+                streams.set(stream.getId(), stream)
+            }
+        }
+        return streams
+    }
+    
     addPeer(peer: Peer) {
 
         if (this.peers.has(peer.getId())) {
@@ -114,7 +129,7 @@ class Room extends EventEmitter {
 
         this.emit('close')
     }
-    
+
     dumps(): any {
         let info = {
             id: this.roomId,
