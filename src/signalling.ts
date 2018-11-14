@@ -86,10 +86,14 @@ const setupSocketServer = async () => {
                 sdp: data.sdp
             })
 
-            // todo add outgoing stream 
-
-
             peer.init(data.sdp, msg.sdp)
+
+            const streams = room.getIncomingStreams()
+
+            for (let stream of streams.values()) {
+                peer.addOutgoingStream(stream)
+            }
+
 
             socket.emit('joined', {
                 sdp: peer.getLocalSDP().toString(),
