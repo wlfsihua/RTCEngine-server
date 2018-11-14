@@ -28,9 +28,32 @@ const socketServer = socketio({
 
 const nclient = new NClient('nave')
 
+nclient.on('event', (msg) => {
+
+    console.dir(msg)
+
+    const room = server.getRoom(msg.room)
+    const peer = room.getPeer(msg.peer)
+    
+    if (msg.name === 'addOutgoingStream') {
+        const plaininfo = msg.data.stream
+        const streamInfo = StreamInfo.expand(plaininfo)
+        peer.addOutgoingStream(streamInfo)
+
+    }
+
+    if (msg.name === 'removeOutgoingStream') {
+        const plaininfo = msg.data.stream
+        const streamInfo = StreamInfo.expand(plaininfo)
+        peer.removeOutgoingStream(streamInfo)
+    }
+
+})
+
 const medianode = 'medianode'
 
 const setupSocketServer = async () => {
+
 
     socketServer.on('connection', async (socket: SocketIO.Socket) => {
 
@@ -48,10 +71,6 @@ const setupSocketServer = async () => {
             let msg = await nclient.request(medianode, roomId, userId, 'newroom', {
                 capabilities: config.media.capabilities
             })
-
-            console.dir(msg)
-            console.log('2222222222222222222222222222222222')
-
             room = server.Room(roomId)
         }
 
@@ -59,25 +78,21 @@ const setupSocketServer = async () => {
 
         socket.on('join', async (data: any, callback?: Function) => {
 
-            room.addPeer(peer)
-
             socket.join(roomId)
 
+            peer.join(room)
 
             let msg = await nclient.request(medianode, roomId, userId, 'join', {
                 sdp: data.sdp
             })
 
-            peer.init(data.sdp, !!data.planB, msg.sdp,room)
+            // todo add outgoing stream 
 
-            const streams = room.getIncomingStreams()
 
-            // for (let stream of streams.values()) {
-            //     peer.subIncomingStream(stream)
-            // }
+            peer.init(data.sdp, msg.sdp)
 
             socket.emit('joined', {
-                sdp: msg.sdp,
+                sdp: peer.getLocalSDP().toString(),
                 room: room.dumps()
             })
 
@@ -85,15 +100,14 @@ const setupSocketServer = async () => {
                 peer: peer.dumps()
             })
 
-            
-            // peer.on('renegotiationneeded', (outgoingStream) => {
+            peer.on('renegotiationneeded', () => {
 
-            //     socket.emit('offer', {
-            //         sdp: peer.getLocalSDP().toString(),
-            //         room: room.dumps()
-            //     })
+                socket.emit('offer', {
+                    sdp: peer.getLocalSDP().toString(),
+                    room: room.dumps()
+                })
 
-            // })
+            })
 
         })
 
@@ -115,7 +129,6 @@ const setupSocketServer = async () => {
             }
 
             peer.addIncomingStream(streamInfo)
-
 
             let msg = await nclient.request(medianode, roomId, userId, 'addStream', {
                 sdp: data.sdp,
@@ -145,6 +158,12 @@ const setupSocketServer = async () => {
 
             peer.removeIncomingStream(streamInfo)
 
+            let msg = await nclient.request(medianode, roomId, userId, 'removeStream', {
+                stream: {
+                    streamId: streamId
+                }
+            })
+            console.dir(msg)
         })
 
         socket.on('configure', async (data: any, callback?: Function) => {
@@ -157,11 +176,22 @@ const setupSocketServer = async () => {
                 return
             }
 
+            // remotestream 
+            let msg = await nclient.request(medianode, roomId, userId, 'muteRemote', {
+                muting: data.muting,
+                stream: {
+                    streamId:streamId
+                }
+            })
+
+            console.dir(msg)
         })
 
         socket.on('leave', async (data: any, callback?: Function) => {
 
             socket.disconnect(true)
+
+            let msg = await nclient.request(medianode, roomId, userId, 'leave', {})
 
             peer.close()
         })

@@ -30,8 +30,6 @@ class NClient extends EventEmitter {
         this.subTopic = subTopic
 
         this.nats.subscribe(this.subTopic, async (msg) => {
-            console.error(typeof msg)
-            console.dir(msg)
             msg = JSON.parse(msg)
             if (msg.id) {
                 const message = this.requestMap.get(msg.id)
@@ -66,7 +64,6 @@ class NClient extends EventEmitter {
             this.requestMap.set(uid, message)
 
             this.nats.publish(node, JSON.stringify(message.data), () => {
-                console.log('after publish')
             })
         })
 

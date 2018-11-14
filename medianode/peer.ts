@@ -18,8 +18,6 @@ const Direction = SemanticSDP.Direction
 const CodecInfo = SemanticSDP.CodecInfo
 
 
-
-
 class Peer extends EventEmitter {
 
     private peerId: string
@@ -157,13 +155,13 @@ class Peer extends EventEmitter {
             let exist = this.outgoingStreams.delete(outgoingStream.getId())
 
             if (exist) {
-                this.emit('renegotiationneeded', outgoingStream)
+                this.emit('removeOutgoingStream', outgoingStream)
             }
 
         })
 
         if (emit) {
-            this.emit('renegotiationneeded', outgoingStream)
+            this.emit('addOutgoingStream', outgoingStream)
         }
 
         return outgoingStream

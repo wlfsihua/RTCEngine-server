@@ -46,6 +46,7 @@ class Worker extends EventEmitter {
 
         const subTopic = 'medianode'
 
+        
         this.nats.subscribe(subTopic, async (msg) => {
             msg = JSON.parse(msg)
             this.handleMessage(msg)
@@ -72,8 +73,6 @@ class Worker extends EventEmitter {
                 this.rooms.delete(room.getId())
             })
 
-            console.dir(Message.reply(msg, {}).toString())
-
             this.nats.publish(this.publicTopic, Message.reply(msg, {}).toString())
             return
         } 
@@ -81,8 +80,6 @@ class Worker extends EventEmitter {
         const room = this.rooms.get(msg.room)
 
         if (!room) {
-            console.dir(Message.error(msg,'can not find room').toString())
-
             this.nats.publish(this.publicTopic,Message.error(msg,'can not find room').toString())
             return 
         }
@@ -91,6 +88,7 @@ class Worker extends EventEmitter {
 
             const peer = new Peer(msg.peer)
             const sdp = msg.data.sdp
+
             room.addPeer(peer)
 
             peer.init(sdp, room)
@@ -105,19 +103,32 @@ class Worker extends EventEmitter {
                 sdp: peer.getLocalSDP().toString()
             }).toString())
 
-            
-            peer.on('renegotiationneeded', (outgoingStream) => {
+            peer.on('addOutgoingStream', (outgoingStream) => {
 
-                this.nats.publish(this.publicTopic, 
-                    JSON.stringify({type: 'event',
-                                    room: room.getId(),
-                                    peer: peer.getId(),
-                                    name: 'offer',
-                                    data: {
-                                        sdp: peer.getLocalSDP().toString(),
-                                        room: room.dumps()
-                                    }}))
+                this.nats.publish(this.publicTopic, JSON.stringify({
+                    type: 'event',
+                    room: room.getId(),
+                    peer: peer.getId(),
+                    name: 'addOutgoingStream',
+                    data: {
+                        stream: outgoingStream.getStreamInfo().plain()
+                    }
+                }))
             })
+
+            peer.on('removeOutgoingStream', (outgoingStream) => {
+
+                this.nats.publish(this.publicTopic, JSON.stringify({
+                    type: 'event',
+                    room: room.getId(),
+                    peer: peer.getId(),
+                    name: 'removeOutgoingStream',
+                    data: {
+                        stream: outgoingStream.getStreamInfo().plain()
+                    }
+                }))
+            })
+            
             return
         }
 
@@ -133,9 +144,7 @@ class Worker extends EventEmitter {
             const sdp = SDPInfo.process(msg.data.sdp)
             const streamId = msg.data.stream.streamId
             const streamInfo = sdp.getStream(streamId)
-
             peer.addStream(streamInfo)
-
             this.nats.publish(this.publicTopic,Message.reply(msg).toString())
             return
         }
@@ -143,10 +152,8 @@ class Worker extends EventEmitter {
         if (msg.name === 'removeStream') {
 
             const streamId = msg.data.stream.streamId
-
             const stream = peer.getIncomingStreams().get(streamId)
             peer.removeStream(stream.getStreamInfo())
-
             this.nats.publish(this.publicTopic, Message.reply(msg).toString())
             return
         }
@@ -179,14 +186,12 @@ class Worker extends EventEmitter {
             }
 
             this.nats.publish(this.publicTopic, Message.reply(msg).toString())
-
             return
         }
 
         if (msg.name === 'leave') {
-
-            peer.close()
             this.nats.publish(this.publicTopic,Message.reply(msg).toString())
+            peer.close()
             return
         }
 

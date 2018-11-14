@@ -63,17 +63,19 @@ class Peer extends EventEmitter {
         return this.outgoingStreams
     }
 
-    public init(remoteSdp:string, planb:boolean,localSdp:string,room: Room) {
-
-        this.room = room
+    public init(remoteSdp:string,localSdp:string) {
 
         const offer = SDPInfo.process(remoteSdp)
-
-        this.usePlanB = planb
 
         this.remoteSdp = offer
 
         this.localSdp = SDPInfo.process(localSdp)
+    }
+
+    public join(room:Room) {
+
+        this.room = room
+        room.addPeer(this)
     }
 
     public close() {
@@ -109,8 +111,9 @@ class Peer extends EventEmitter {
     public addOutgoingStream(streamInfo: any) {
 
         this.outgoingStreams.delete(streamInfo.getId())
-
         this.localSdp.addStream(streamInfo)
+        
+        this.emit('renegotiationneeded', streamInfo)
     }
 
     public removeOutgoingStream(streamInfo:any) {
@@ -118,6 +121,8 @@ class Peer extends EventEmitter {
         if (this.outgoingStreams.get(streamInfo.getId())) {
             this.outgoingStreams.delete(streamInfo.getId())
             this.localSdp.removeStream()
+            
+            this.emit('renegotiationneeded', streamInfo)
         }
     }
 
@@ -138,8 +143,6 @@ class Peer extends EventEmitter {
         }
         return info
     }
-
 }
-
 
 export default Peer
