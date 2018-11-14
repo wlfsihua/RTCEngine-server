@@ -17,6 +17,7 @@ import server from './server'
 import Room from './room'
 import Peer from './peer'
 import config from './config'
+import NClient from './nats'
 
 
 const socketServer = socketio({
@@ -25,6 +26,9 @@ const socketServer = socketio({
     transports: ['websocket']
 })
 
+const nclient = new NClient('nave')
+
+const medianode = 'medianode'
 
 const setupSocketServer = async () => {
 
@@ -40,6 +44,14 @@ const setupSocketServer = async () => {
         let room = server.getRoom(roomId)
 
         if (!room) {
+
+            let msg = await nclient.request(medianode, roomId, userId, 'newroom', {
+                capabilities: config.media.capabilities
+            })
+
+            console.dir(msg)
+            console.log('2222222222222222222222222222222222')
+
             room = server.Room(roomId)
         }
 
@@ -51,16 +63,21 @@ const setupSocketServer = async () => {
 
             socket.join(roomId)
 
-            peer.init(data, room)
+
+            let msg = await nclient.request(medianode, roomId, userId, 'join', {
+                sdp: data.sdp
+            })
+
+            peer.init(data.sdp, !!data.planB, msg.sdp,room)
 
             const streams = room.getIncomingStreams()
 
-            for (let stream of streams.values()) {
-                peer.subIncomingStream(stream)
-            }
+            // for (let stream of streams.values()) {
+            //     peer.subIncomingStream(stream)
+            // }
 
             socket.emit('joined', {
-                sdp: peer.getLocalSDP().toString(),
+                sdp: msg.sdp,
                 room: room.dumps()
             })
 
@@ -68,14 +85,15 @@ const setupSocketServer = async () => {
                 peer: peer.dumps()
             })
 
-            peer.on('renegotiationneeded', (outgoingStream) => {
+            
+            // peer.on('renegotiationneeded', (outgoingStream) => {
 
-                socket.emit('offer', {
-                    sdp: peer.getLocalSDP().toString(),
-                    room: room.dumps()
-                })
+            //     socket.emit('offer', {
+            //         sdp: peer.getLocalSDP().toString(),
+            //         room: room.dumps()
+            //     })
 
-            })
+            // })
 
         })
 
@@ -96,7 +114,17 @@ const setupSocketServer = async () => {
                 return
             }
 
-            peer.addStream(streamInfo)
+            peer.addIncomingStream(streamInfo)
+
+
+            let msg = await nclient.request(medianode, roomId, userId, 'addStream', {
+                sdp: data.sdp,
+                stream: {
+                    streamId: streamId
+                }
+            })
+
+            console.log('after add stream', msg)
 
             // we set bitrate, need find a better way to do this
             for (let media of peer.getLocalSDP().getMediasByType('video')) {
@@ -113,9 +141,9 @@ const setupSocketServer = async () => {
 
             const streamId = data.stream.msid
 
-            const stream = peer.getIncomingStreams().get(streamId)
+            const streamInfo = peer.getIncomingStreams().get(streamId)
 
-            peer.removeStream(stream.getStreamInfo())
+            peer.removeIncomingStream(streamInfo)
 
         })
 
@@ -129,27 +157,6 @@ const setupSocketServer = async () => {
                 return
             }
 
-            const outgoingStream = peer.getOutgoingStreams().get(streamId)
-
-            if (!outgoingStream) {
-                return
-            }
-
-            if ('video' in data) {
-                let muting = data.muting
-
-                for (let track of outgoingStream.getVideoTracks()) {
-                    track.mute(muting)
-                }
-            }
-
-            if ('audio' in data) {
-                let muting = data.muting
-
-                for (let track of outgoingStream.getAudioTracks()) {
-                    track.mute(muting)
-                }
-            }
         })
 
         socket.on('leave', async (data: any, callback?: Function) => {
@@ -162,7 +169,7 @@ const setupSocketServer = async () => {
         socket.on('message', async (data: any, callback?: Function) => {
             socket.to(room.getId()).emit('message', data)
         })
-        
+
         socket.on('disconnect', async () => {
             socket.to(room.getId()).emit('peerRemoved', {
                 peer: peer.dumps()
@@ -171,6 +178,7 @@ const setupSocketServer = async () => {
             peer.close()
         })
     })
+
 
 }
 

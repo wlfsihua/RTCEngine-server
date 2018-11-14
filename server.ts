@@ -1,20 +1,19 @@
 import * as program from 'commander'
 import * as dotenv from 'dotenv'
-import ip = require('ip')
 
-const MediaServer = require('medooze-media-server')
 
 dotenv.config()
 
 import server from './src/server'
 
-// MediaServer.enableDebug(true);
-// MediaServer.enableUltraDebug(true);
+const port = process.env.PORT ? parseInt(process.env.PORT) :3888
+const host = process.env.HOST ? process.env.HOST : '127.0.0.1'
 
 
-server.start(3888, '127.0.0.1', () => {
+server.start(port, host, () => {
     console.log('start')
 })
+
 
 
 

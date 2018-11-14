@@ -1,13 +1,15 @@
+
 export default {
+    medianode: 'http://localhost:4000/',
     server: {
         secret: 'test_secret',
-        externalUrl: 'http://192.168.200.15:3888/'
+        externalUrl: 'http://127.0.0.1:3888/'
     },
-    iceServer: {
-        urls: ['101.201.141.179:3478', '101.201.141.179:3478'],
-        secret: 'dotEngine_turn001',
-        transports: ['udp', 'tcp']
-    },
+    // iceServer: {
+    //     urls: ['101.201.141.179:3478', '101.201.141.179:3478'],
+    //     secret: 'dotEngine_turn001',
+    //     transports: ['udp', 'tcp']
+    // },
     etcd: {
         hosts:'127.0.0.1:2379'
     },
@@ -19,7 +21,6 @@ export default {
             transports: ['udp', 'tcp']
         }
     ],
-    // to disable recorder  comment this
     recorder: {
         enable: true,
         refreshPeriod: 10000,  // ten seconds
@@ -27,7 +28,7 @@ export default {
     },
     media: {
         debug: true,
-        endpoint: '192.168.200.15',
+        endpoint: '127.0.0.1',
         ultraDebug: true,
         rtcMinPort: 10000,
         rtcMaxPort: 10002,
@@ -41,8 +42,7 @@ export default {
                 ]
             },
             video: {
-                codecs: ['vp8'],
-                //codecs: ['h264;packetization-mode=1;profile-level-id=42e01f'],
+                codecs: ['vp8','h264;packetization-mode=1'],
                 rtx: true,
                 rtcpfbs: [
                     { 'id': 'transport-cc' },

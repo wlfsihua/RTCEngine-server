@@ -1,12 +1,13 @@
-
-import os  from 'os'
-import io from 'socket.io-client'
+import * as SocketServer from 'socket.io'
 import { EventEmitter } from 'events'
 import Room from './room'
 import Peer from './peer'
 import Message from './message'
 
 const SemanticSDP = require('semantic-sdp')
+
+import * as NATS from 'nats'
+import * as os  from 'os'
 
 const SDPInfo = SemanticSDP.SDPInfo
 const MediaInfo = SemanticSDP.MediaInfo
@@ -24,37 +25,32 @@ const MediaServer = require('medooze-media-server')
 class Worker extends EventEmitter {
 
     private params:any
-    private socket:SocketIOClient.Socket
     private rooms: Map<string, Room>
+    private nats: NATS.Client
+    private publicTopic: string
 
     constructor(params:any){
         super()
 
         this.params = params
 
-        this.socket = io.connect(params.uri,{
-            reconnection:true,
-            reconnectionAttempts:5,
-            reconnectionDelay:1000,
-            transports:['websocket'],
-            query: {
-                worker: os.hostname() + '-media-' + process.pid
-            }
+        this.rooms = new Map()
+
+        this.publicTopic = params.publicTopic || 'nave'
+
+        this.nats = NATS.connect({
+            reconnect:true
         })
 
-        this.socket.on('connect', async () => {
-            console.log('connect', this.socket.id)
+        //const subTopic = os.hostname() + 'medianode' + process.pid
+
+        const subTopic = 'medianode'
+
+        this.nats.subscribe(subTopic, async (msg) => {
+            msg = JSON.parse(msg)
+            this.handleMessage(msg)
         })
 
-        this.socket.on('disconnect', async () => {
-            console.log('disconnect')
-
-            this.close()
-        })
-
-        this.socket.on('message', async (data) => {
-            this.handleMessage(data)
-        })
     }
 
     /**
@@ -62,10 +58,11 @@ class Worker extends EventEmitter {
      * @param msg 
      * @param callback 
      */
-    async handleMessage(msg:any, callback?:Function) {
+    async handleMessage(msg:any) {
+
+        console.dir(msg)
 
         if (msg.name === 'newroom') {
-
             const capabilities = msg.data.capabilities
 
             const room = new Room(msg.room, capabilities, this.params.endpoint)
@@ -75,15 +72,18 @@ class Worker extends EventEmitter {
                 this.rooms.delete(room.getId())
             })
 
-            callback(Message.reply(msg).toJSON())
+            console.dir(Message.reply(msg, {}).toString())
+
+            this.nats.publish(this.publicTopic, Message.reply(msg, {}).toString())
             return
         } 
-
 
         const room = this.rooms.get(msg.room)
 
         if (!room) {
-            callback(Message.error(msg,'can not find room').toJSON())
+            console.dir(Message.error(msg,'can not find room').toString())
+
+            this.nats.publish(this.publicTopic,Message.error(msg,'can not find room').toString())
             return 
         }
 
@@ -101,30 +101,30 @@ class Worker extends EventEmitter {
                 peer.addOutgoingStream(stream)
             }
 
-            callback(Message.reply(msg).toJSON())
+            this.nats.publish(this.publicTopic, Message.reply(msg, {
+                sdp: peer.getLocalSDP().toString()
+            }).toString())
 
+            
             peer.on('renegotiationneeded', (outgoingStream) => {
 
-                this.socket.emit('message', {
-                    type: 'event',
-                    room: room.getId(),
-                    peer: peer.getId(),
-                    name: 'offer',
-                    data: {
-                        sdp: peer.getLocalSDP().toString(),
-                        room: room.dumps()
-                    }
-                })
-
+                this.nats.publish(this.publicTopic, 
+                    JSON.stringify({type: 'event',
+                                    room: room.getId(),
+                                    peer: peer.getId(),
+                                    name: 'offer',
+                                    data: {
+                                        sdp: peer.getLocalSDP().toString(),
+                                        room: room.dumps()
+                                    }}))
             })
-
             return
         }
 
         const peer = room.getPeer(msg.peer)
 
         if (!peer) {
-            callback(Message.error(msg,'can not find peer').toJSON())
+            this.nats.publish(this.publicTopic,Message.error(msg,'can not find peer').toString())
             return
         }
 
@@ -136,21 +136,18 @@ class Worker extends EventEmitter {
 
             peer.addStream(streamInfo)
 
-            callback(Message.reply(msg).toJSON())
-
+            this.nats.publish(this.publicTopic,Message.reply(msg).toString())
             return
         }
 
         if (msg.name === 'removeStream') {
 
             const streamId = msg.data.stream.streamId
-            
-            const stream = peer.getIncomingStreams().get(streamId)
 
+            const stream = peer.getIncomingStreams().get(streamId)
             peer.removeStream(stream.getStreamInfo())
 
-            callback(Message.reply(msg).toJSON())
-
+            this.nats.publish(this.publicTopic, Message.reply(msg).toString())
             return
         }
 
@@ -161,7 +158,7 @@ class Worker extends EventEmitter {
             const outgoingStream = peer.getOutgoingStreams().get(streamId)
 
             if (!outgoingStream) {
-                callback(Message.error(msg,'can not find streamId' + streamId).toJSON())
+                this.nats.publish(this.publicTopic, Message.error(msg,'can not find streamId' + streamId).toString())
                 return
             }
 
@@ -181,7 +178,7 @@ class Worker extends EventEmitter {
                 }
             }
 
-            callback(Message.reply(msg).toJSON())
+            this.nats.publish(this.publicTopic, Message.reply(msg).toString())
 
             return
         }
@@ -189,7 +186,7 @@ class Worker extends EventEmitter {
         if (msg.name === 'leave') {
 
             peer.close()
-            callback(Message.reply(msg).toJSON())
+            this.nats.publish(this.publicTopic,Message.reply(msg).toString())
             return
         }
 

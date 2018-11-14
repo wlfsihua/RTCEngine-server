@@ -22,6 +22,10 @@ class Message {
         }
     }
     
+    toString(): string {
+        return JSON.stringify(this.toJSON())
+    }
+
     static parse(raw: string): Message {
         let message: Message = new Message()
         let object = JSON.parse(raw)
@@ -59,7 +63,6 @@ class Message {
     }
 
     static error(message:any,error?:string): Message {
-
         let msg = new Message()
         msg.id = message.id
         msg.peer = message.peer

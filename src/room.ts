@@ -15,10 +15,7 @@ export default class Room extends EventEmitter {
     private peers: Map<string, Peer>
     private attributes: Map<string, any>
     private bitrates: Map<string, any>
-    private tracksMap: Map<string, string>
-    private endpoint: any
-    private activeSpeakerDetector: any
-    
+
     constructor(room: string) {
 
         super()
@@ -29,34 +26,11 @@ export default class Room extends EventEmitter {
         this.peers = new Map()
         this.attributes = new Map()
         this.bitrates = new Map()
-        this.tracksMap = new Map()
-
-        this.endpoint = MediaServer.createEndpoint(config.media.endpoint)
-
-        this.activeSpeakerDetector = MediaServer.createActiveSpeakerDetector()
-
-        this.activeSpeakerDetector.setMinChangePeriod(100)
-
-        this.activeSpeakerDetector.on('activespeakerchanged', (track) => {
-
-            let peerId = this.tracksMap.get(track.getId())
-
-            if (peerId) {
-                this.emit('activespeakerchanged', peerId)
-                // just log for now 
-                log.debug('activespeakerchanged', peerId)
-            }
-
-        })
-
+        
     }
 
     public getId(): string {
         return this.roomId
-    }
-
-    public getEndpoint(): any {
-        return this.endpoint
     }
 
     public getPeers(): Peer[] {
@@ -80,27 +54,6 @@ export default class Room extends EventEmitter {
 
         this.peers.set(peer.getId(), peer)
 
-        peer.on('stream', (stream) => {
-
-            for (let other of this.peers.values()) {
-                if (peer.getId() !== other.getId()) {
-                    other.addOutgoingStream(stream)
-                }
-            }
-
-            let audioTrack = stream.getAudioTracks()[0]
-
-            if (audioTrack) {
-
-                this.activeSpeakerDetector.addSpeaker(audioTrack)
-
-                audioTrack.on('stoped', () => {
-                    this.activeSpeakerDetector.removeSpeaker(audioTrack)
-                })
-
-            }
-
-        })
 
         peer.on('close', () => {
 
@@ -128,13 +81,6 @@ export default class Room extends EventEmitter {
             peer.close()
         }
 
-        if (this.activeSpeakerDetector) {
-            this.activeSpeakerDetector.stop()
-        }
-
-        if (this.endpoint) {
-            this.endpoint.stop()
-        }
 
         this.emit('close')
     }

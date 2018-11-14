@@ -8,8 +8,6 @@ import * as cors from 'cors'
 import errorHandler = require('errorhandler')
 import methodOverride = require('method-override')
 
-const MediaServer = require('medooze-media-server')
-
 import Room from './room'
 import Peer from './peer'
 import config from './config'
@@ -17,6 +15,7 @@ import config from './config'
 import apiRouter from './api'
 import socketHandle from './signalling'
 import { EventEmitter } from 'events'
+
 
 
 class Server extends EventEmitter {
@@ -81,7 +80,6 @@ class Server extends EventEmitter {
     }
 
     private startSocketServer() {
-
         socketHandle.socketServer.attach(this.httpServer)
         socketHandle.setupSocketServer()
     }
@@ -95,6 +93,7 @@ class Server extends EventEmitter {
     }
 
     public Room(roomId: string): Room {
+
         const room = new Room(roomId)
 
         this.rooms.set(room.getId(), room)
