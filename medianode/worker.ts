@@ -19,7 +19,6 @@ const TrackInfo = SemanticSDP.TrackInfo
 const Direction = SemanticSDP.Direction
 const CodecInfo = SemanticSDP.CodecInfo
 
-
 const MediaServer = require('medooze-media-server')
 
 class Worker extends EventEmitter {
@@ -46,9 +45,11 @@ class Worker extends EventEmitter {
 
         const subTopic = 'medianode'
 
-        
         this.nats.subscribe(subTopic, async (msg) => {
             msg = JSON.parse(msg)
+            console.log('receive ===============')
+            console.dir(msg)
+            
             this.handleMessage(msg)
         })
 
@@ -105,6 +106,9 @@ class Worker extends EventEmitter {
 
             peer.on('addOutgoingStream', (outgoingStream) => {
 
+                console.log('addOutgoingStream')
+                console.dir(outgoingStream.getStreamInfo())
+
                 this.nats.publish(this.publicTopic, JSON.stringify({
                     type: 'event',
                     room: room.getId(),
@@ -118,6 +122,9 @@ class Worker extends EventEmitter {
 
             peer.on('removeOutgoingStream', (outgoingStream) => {
 
+                console.log('removeOutgoingStream')
+                console.dir(outgoingStream.getStreamInfo())
+
                 this.nats.publish(this.publicTopic, JSON.stringify({
                     type: 'event',
                     room: room.getId(),
@@ -128,7 +135,7 @@ class Worker extends EventEmitter {
                     }
                 }))
             })
-            
+
             return
         }
 

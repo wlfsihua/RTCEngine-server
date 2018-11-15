@@ -30,8 +30,6 @@ const nclient = new NClient('nave')
 
 nclient.on('event', (msg) => {
 
-    console.dir(msg)
-
     const room = server.getRoom(msg.room)
     const peer = room.getPeer(msg.peer)
     
@@ -93,8 +91,7 @@ const setupSocketServer = async () => {
             for (let stream of streams.values()) {
                 peer.addOutgoingStream(stream)
             }
-
-
+            
             socket.emit('joined', {
                 sdp: peer.getLocalSDP().toString(),
                 room: room.dumps()

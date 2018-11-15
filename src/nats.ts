@@ -39,7 +39,10 @@ class NClient extends EventEmitter {
                 }
             } else {
                 this.emit('event', msg)
+                console.log('subscribe============')
+                console.dir(msg)
             }
+
         })
     }
     async request(node:string,room:string,peer:string,name:string, data:any) {
@@ -63,6 +66,9 @@ class NClient extends EventEmitter {
 
             this.requestMap.set(uid, message)
 
+            console.log('publish==============')
+            console.dir(message.data)
+            
             this.nats.publish(node, JSON.stringify(message.data), () => {
             })
         })

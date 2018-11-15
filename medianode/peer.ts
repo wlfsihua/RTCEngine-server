@@ -103,6 +103,7 @@ class Peer extends EventEmitter {
 
         const incomingStream = this.transport.createIncomingStream(streamInfo)
 
+    
         this.incomingStreams.set(incomingStream.getId(), incomingStream)
 
         process.nextTick(() => {
