@@ -17,35 +17,13 @@ import server from './server'
 import Room from './room'
 import Peer from './peer'
 import config from './config'
-import NClient from './nats'
+import NClient from './channel'
 
 
 const socketServer = socketio({
     pingInterval: 10000,
     pingTimeout: 5000,
     transports: ['websocket']
-})
-
-const nclient = new NClient('nave')
-
-nclient.on('event', (msg) => {
-
-    const room = server.getRoom(msg.room)
-    const peer = room.getPeer(msg.peer)
-    
-    if (msg.name === 'addOutgoingStream') {
-        const plaininfo = msg.data.stream
-        const streamInfo = StreamInfo.expand(plaininfo)
-        peer.addOutgoingStream(streamInfo)
-
-    }
-
-    if (msg.name === 'removeOutgoingStream') {
-        const plaininfo = msg.data.stream
-        const streamInfo = StreamInfo.expand(plaininfo)
-        peer.removeOutgoingStream(streamInfo)
-    }
-
 })
 
 const medianode = 'medianode'
@@ -65,37 +43,26 @@ const setupSocketServer = async () => {
         let room = server.getRoom(roomId)
 
         if (!room) {
-            let msg = await nclient.request(medianode, roomId, '', 'newroom', {
-                capabilities: config.media.capabilities
-            })
-
             room = server.Room(roomId)
-            room.on('close', async () => {
-                let msg = await nclient.request(medianode, roomId,'', 'removeroom', {
-                })
-            })
         }
 
-        const peer = new Peer(userId)
+        const peer = room.Peer(userId)
 
         socket.on('join', async (data: any, callback?: Function) => {
 
             socket.join(roomId)
 
-            peer.join(room)
+            const sdp = data.sdp
 
-            let msg = await nclient.request(medianode, roomId, userId, 'join', {
-                sdp: data.sdp
-            })
-
-            peer.init(data.sdp, msg.sdp)
+            // remote join 
+            await peer.join(room, sdp)
 
             const streams = room.getIncomingStreams()
 
             for (let stream of streams.values()) {
                 peer.addOutgoingStream(stream)
             }
-            
+
             socket.emit('joined', {
                 sdp: peer.getLocalSDP().toString(),
                 room: room.dumps()
@@ -133,16 +100,7 @@ const setupSocketServer = async () => {
                 return
             }
 
-            peer.addIncomingStream(streamInfo)
-
-            let msg = await nclient.request(medianode, roomId, userId, 'addStream', {
-                sdp: data.sdp,
-                stream: {
-                    streamId: streamId
-                }
-            })
-
-            console.log('after add stream', msg)
+            await peer.addIncomingStream(streamInfo)
 
             // we set bitrate, need find a better way to do this
             for (let media of peer.getLocalSDP().getMediasByType('video')) {
@@ -161,14 +119,8 @@ const setupSocketServer = async () => {
 
             const streamInfo = peer.getIncomingStreams().get(streamId)
 
-            peer.removeIncomingStream(streamInfo)
+            await peer.removeIncomingStream(streamInfo)
 
-            let msg = await nclient.request(medianode, roomId, userId, 'removeStream', {
-                stream: {
-                    streamId: streamId
-                }
-            })
-            console.dir(msg)
         })
 
         socket.on('configure', async (data: any, callback?: Function) => {
@@ -182,23 +134,14 @@ const setupSocketServer = async () => {
             }
 
             // remotestream 
-            let msg = await nclient.request(medianode, roomId, userId, 'muteRemote', {
-                muting: data.muting,
-                stream: {
-                    streamId:streamId
-                }
-            })
-
-            console.dir(msg)
+            // todo 
+            await peer.muteRemote(streamId,'trackId', data.muting)
         })
 
         socket.on('leave', async (data: any, callback?: Function) => {
 
             socket.disconnect(true)
-
-            let msg = await nclient.request(medianode, roomId, userId, 'leave', {})
-
-            peer.close()
+            await peer.close()
         })
 
         socket.on('message', async (data: any, callback?: Function) => {
@@ -210,7 +153,7 @@ const setupSocketServer = async () => {
                 peer: peer.dumps()
             })
             socket.leaveAll()
-            peer.close()
+            await peer.close()
         })
     })
 

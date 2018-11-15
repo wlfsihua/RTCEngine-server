@@ -5,6 +5,7 @@ const MediaServer = require('medooze-media-server')
 import Peer from './peer'
 import config from './config'
 import Logger from './logger'
+import NClient from './channel'
 
 const log = new Logger('room')
 
@@ -15,8 +16,10 @@ export default class Room extends EventEmitter {
     private peers: Map<string, Peer>
     private attributes: Map<string, any>
     private bitrates: Map<string, any>
+    private channel: NClient
+    private internal:any
 
-    constructor(room: string) {
+    constructor(room: string, channel:NClient, internal:any) {
 
         super()
         this.setMaxListeners(Infinity)
@@ -26,7 +29,9 @@ export default class Room extends EventEmitter {
         this.peers = new Map()
         this.attributes = new Map()
         this.bitrates = new Map()
-        
+        this.channel = channel
+        this.internal = internal
+
     }
 
     public getId(): string {
@@ -45,15 +50,15 @@ export default class Room extends EventEmitter {
         return this.peers.get(peer)
     }
 
-    public addPeer(peer: Peer) {
+    public Peer(peerId:string) {
 
-        if (this.peers.has(peer.getId())) {
-            log.warn('peer alread in room')
-            return
+        const internal = {
+            medianode: this.internal.medianode
         }
 
-        this.peers.set(peer.getId(), peer)
+        const peer = new Peer(peerId, this.channel, internal)
 
+        this.peers.set(peer.getId(), peer)
 
         peer.on('close', () => {
 
@@ -68,7 +73,9 @@ export default class Room extends EventEmitter {
         })
 
         this.emit('peers', this.peers.values())
-    }
+        
+        return peer
+    } 
 
     public close() {
         if (this.closed) {
@@ -77,10 +84,16 @@ export default class Room extends EventEmitter {
 
         this.closed = true
 
+        const data = {
+            room:this.roomId,
+            name:'removeroom'
+        }
+
+        this.channel.request(this.internal.medianode, data)
+        
         for (let peer of this.peers.values()) {
             peer.close()
         }
-
 
         this.emit('close')
     }

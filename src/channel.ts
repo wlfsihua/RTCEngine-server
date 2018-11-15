@@ -44,8 +44,9 @@ class NClient extends EventEmitter {
             }
         })
     }
-    async request(node:string,room:string,peer:string,name:string, data:any) {
 
+    request(node:string,data:any) {
+        
         return new Promise((resolve:(data:any) => void,reject) => {
             const uid = randomstring.generate(12)
             const message:Message = {
@@ -53,11 +54,11 @@ class NClient extends EventEmitter {
                 expire: Date.now() + 10000,
                 data: {
                     id:uid,
-                    room:room,
-                    peer:peer,
+                    room:data.room,
+                    peer:data.peer,
                     type:'message',
-                    name:name,
-                    data: data || {}
+                    name:data.name,
+                    data: data.data || {}
                 }
             }
             message.resolve = resolve

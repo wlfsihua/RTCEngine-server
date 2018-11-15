@@ -3,6 +3,7 @@ import { EventEmitter } from 'events'
 import Room from './room'
 import config from './config'
 import Logger from './logger'
+import NClient from './channel';
 
 
 const SemanticSDP = require('semantic-sdp')
@@ -35,12 +36,16 @@ class Peer extends EventEmitter {
 
     private localSdp: any
     private remoteSdp: any
+    private internal:any
+    private channel:NClient
 
-
-    constructor(peerId: string) {
+    constructor(peerId: string, channel:NClient,internal:any) {
         super()
 
         this.peerId = peerId
+        this.internal = internal
+        this.channel = channel
+
     }
 
     public getId() {
@@ -63,22 +68,28 @@ class Peer extends EventEmitter {
         return this.outgoingStreams
     }
 
-    public init(remoteSdp:string,localSdp:string) {
 
-        const offer = SDPInfo.process(remoteSdp)
+    public async join(room:Room, sdp:string) {
 
-        this.remoteSdp = offer
-
-        this.localSdp = SDPInfo.process(localSdp)
-    }
-
-    public join(room:Room) {
+        this.remoteSdp = SDPInfo.process(sdp)
 
         this.room = room
-        room.addPeer(this)
+
+        const data = {
+            room:room.getId(),
+            peer:this.peerId,
+            name: 'join',
+            data: {
+                sdp: sdp
+            }
+        }
+
+        const ret = await this.channel.request(this.internal.medianode, data)
+
+        this.localSdp = SDPInfo.process(ret.sdp)
     }
 
-    public close() {
+    public async close() {
 
         log.debug('peer close')
 
@@ -91,21 +102,59 @@ class Peer extends EventEmitter {
         this.incomingStreams.clear()
         this.outgoingStreams.clear()
 
+        const data = {
+            room: this.room.getId(),
+            peer: this.peerId,
+            name: 'leave'
+        }
+
+        await this.channel.request(this.internal.medianode, data)
+
         this.emit('close')
     }
 
-    public addIncomingStream(streamInfo: any) {
+    public async addIncomingStream(streamInfo: any) {
 
         this.incomingStreams.set(streamInfo.getId(), streamInfo)
         this.remoteSdp.addStream(streamInfo)
+
+        const data = {
+            room: this.room.getId(),
+            peer: this.peerId,
+            name: 'addStream',
+            data : {
+                sdp: this.remoteSdp.toString(),
+                stream: {
+                    streamId: streamInfo.getId()
+                }
+            }
+        }
+
+        await this.channel.request(this.internal.medianode, data)
+
     }
 
-    public removeIncomingStream(streamInfo: any) {
+    public async removeIncomingStream(streamInfo: any) {
 
-        if (this.incomingStreams.get(streamInfo.getId())) {
-            this.incomingStreams.delete(streamInfo.getId())
-            this.remoteSdp.removeStream(streamInfo)
+        if (!this.incomingStreams.get(streamInfo.getId())) {
+            return
         }
+
+        this.incomingStreams.delete(streamInfo.getId())
+        this.remoteSdp.removeStream(streamInfo)
+
+        const data = {
+            room: this.room.getId(),
+            peer: this.peerId,
+            name: 'removeStream',
+            data: {
+                stream: {
+                    streamId: streamInfo.getId()
+                }
+            }
+        }
+
+        await this.channel.request(this.internal.medianode, data)
     }
 
     public addOutgoingStream(streamInfo: any) {
@@ -121,9 +170,25 @@ class Peer extends EventEmitter {
         if (this.outgoingStreams.get(streamInfo.getId())) {
             this.outgoingStreams.delete(streamInfo.getId())
             this.localSdp.removeStream()
-            
+
             this.emit('renegotiationneeded', streamInfo)
         }
+    }
+
+    public async muteRemote(streamId:string, trackId: string, muting:boolean) {
+
+        const data = {
+            room: this.room.getId(),
+            peer: this.peerId,
+            name: 'muteRemote',
+            data: {
+                muting: muting,
+                streamId: streamId,
+                trackId: trackId
+            }
+        }
+
+        await this.channel.request(this.internal.medianode, data)
     }
 
     public dumps(): any {
