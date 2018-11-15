@@ -42,7 +42,6 @@ class NClient extends EventEmitter {
                 console.log('subscribe============')
                 console.dir(msg)
             }
-
         })
     }
     async request(node:string,room:string,peer:string,name:string, data:any) {
@@ -68,7 +67,7 @@ class NClient extends EventEmitter {
 
             console.log('publish==============')
             console.dir(message.data)
-            
+
             this.nats.publish(node, JSON.stringify(message.data), () => {
             })
         })

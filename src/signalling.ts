@@ -65,11 +65,15 @@ const setupSocketServer = async () => {
         let room = server.getRoom(roomId)
 
         if (!room) {
-
-            let msg = await nclient.request(medianode, roomId, userId, 'newroom', {
+            let msg = await nclient.request(medianode, roomId, '', 'newroom', {
                 capabilities: config.media.capabilities
             })
+
             room = server.Room(roomId)
+            room.on('close', async () => {
+                let msg = await nclient.request(medianode, roomId,'', 'removeroom', {
+                })
+            })
         }
 
         const peer = new Peer(userId)

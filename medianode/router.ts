@@ -43,23 +43,47 @@ class Router extends EventEmitter {
     createTransport(sdp:string) {
         const offer = SDPInfo.process(sdp)
         const transport = this.endpoint.createTransport(offer)
+        transport.setRemoteProperties(offer)
         transport.id = uuid.v4()
+        if (offer.getMedia('audio')) {
+            offer.getMedia('audio').setDirection(Direction.SENDRECV)
+        }
+        if (offer.getMedia('video')) {
+            offer.getMedia('video').setDirection(Direction.SENDRECV)
+        }
+        const answer = offer.answer({
+            dtls: transport.getLocalDTLSInfo(),
+            ice: transport.getLocalICEInfo(),
+            candidates: this.endpoint.getLocalCandidates(),
+            capabilities: this.capabilities
+        })
+        transport.setLocalProperties({
+            audio: answer.getMedia('audio'),
+            video: answer.getMedia('video')
+        })
         this.transports.set(transport.id, transport)
         transport.on('stopped', () => {
             this.transports.delete(transport.id)
         })
+        return transport
     }
-    addIncomingStream(streamInfo:any, transport:string) {
-        
+    createIncomingStream(streamInfo:any, transportId:string) {
+        const transport = this.transports.get(transportId)
+        const incomingStream = transport.createIncomingStream(streamInfo)
+        return incomingStream
     }
-    removeIncomingStream(streamInfo:any, transport:string) {
-
+    removeIncomingStream(streamInfo:any, transportId:string) {
+        const transport = this.transports.get(transportId)
+        const outgoingStream = transport.getOutgoingStream(streamInfo.getId())
+        outgoingStream.stop()
     } 
-    addOutgoingStream() {
+    addOutgoingStream(incomingStream:any,transportId:string) {
 
     }
     removeOutgoingStream() {
-        
+
     }
 }
+
+export default Router
 

@@ -47,14 +47,9 @@ class Worker extends EventEmitter {
 
         this.nats.subscribe(subTopic, async (msg) => {
             msg = JSON.parse(msg)
-            console.log('receive ===============')
-            console.dir(msg)
-            
             this.handleMessage(msg)
         })
-
     }
-
     /**
      * 
      * @param msg 
@@ -85,6 +80,12 @@ class Worker extends EventEmitter {
             return 
         }
 
+        if (msg.name === 'removeroom') {
+            room.close()
+            this.nats.publish(this.publicTopic, Message.reply(msg, {}).toString())
+            return
+        }
+
         if (msg.name === 'join') {
 
             const peer = new Peer(msg.peer)
@@ -106,9 +107,6 @@ class Worker extends EventEmitter {
 
             peer.on('addOutgoingStream', (outgoingStream) => {
 
-                console.log('addOutgoingStream')
-                console.dir(outgoingStream.getStreamInfo())
-
                 this.nats.publish(this.publicTopic, JSON.stringify({
                     type: 'event',
                     room: room.getId(),
@@ -121,9 +119,6 @@ class Worker extends EventEmitter {
             })
 
             peer.on('removeOutgoingStream', (outgoingStream) => {
-
-                console.log('removeOutgoingStream')
-                console.dir(outgoingStream.getStreamInfo())
 
                 this.nats.publish(this.publicTopic, JSON.stringify({
                     type: 'event',
@@ -147,7 +142,6 @@ class Worker extends EventEmitter {
         }
 
         if (msg.name === 'addStream') {
-
             const sdp = SDPInfo.process(msg.data.sdp)
             const streamId = msg.data.stream.streamId
             const streamInfo = sdp.getStream(streamId)
@@ -168,7 +162,6 @@ class Worker extends EventEmitter {
         if (msg.name === 'muteRemote') {
 
             const streamId = msg.data.stream.streamId
-
             const outgoingStream = peer.getOutgoingStreams().get(streamId)
 
             if (!outgoingStream) {
@@ -201,9 +194,8 @@ class Worker extends EventEmitter {
             peer.close()
             return
         }
-
     }
-
+    
     close() {
 
         for(let room of this.rooms.values()) {
