@@ -119,17 +119,12 @@ class Server extends EventEmitter {
     }
 
     public Room(roomId: string):Room {
-
         // todo, random this  
         const internal = {
         }
 
-
-        // 
         let random = Math.floor(Math.random() * this.channels.size)
-
         const channel = Array.from(this.channels.values())[random]
-
 
         const room = new Room(roomId, channel, internal)
 
@@ -163,6 +158,25 @@ class Server extends EventEmitter {
         this.channels.add(channel)
 
         channel.on('close', () => { this.channels.delete(channel) })
+
+        channel.on('event', (msg) => {
+            if(this.rooms.get(msg.room) && this.rooms.get(msg.room).getPeer(msg.peer)) {
+                const peer = this.rooms.get(msg.room).getPeer(msg.peer)
+
+                if (msg.name === 'addOutgoingStream') {
+                    const plaininfo = msg.data.stream
+                    const streamInfo = StreamInfo.expand(plaininfo)
+                    peer.addOutgoingStream(streamInfo)
+                }
+
+                if (msg.name === 'removeOutgoingStream') {
+                    const plaininfo = msg.data.stream
+                    const streamInfo = StreamInfo.expand(plaininfo)
+                    peer.removeOutgoingStream(streamInfo)
+                }
+            }
+        })
+
     }
 
 }
