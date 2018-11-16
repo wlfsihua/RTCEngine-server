@@ -4,25 +4,17 @@ import Peer from './peer'
 import Message from './message'
 import Channel from './channel'
 import * as io from 'socket.io-client'
-
-const SemanticSDP = require('semantic-sdp')
-
-import * as NATS from 'nats'
 import * as os  from 'os'
 
+const SemanticSDP = require('semantic-sdp')
 const SDPInfo = SemanticSDP.SDPInfo
-
-
 
 class Worker extends EventEmitter {
 
     private params:any
     private rooms: Map<string, Room>
-    private nats: NATS.Client
     private publicTopic: string
-
     private channel:Channel
-
 
     constructor(params:any){
         super()
@@ -30,21 +22,6 @@ class Worker extends EventEmitter {
         this.params = params
 
         this.rooms = new Map()
-
-        this.publicTopic = params.publicTopic || 'nave'
-
-        this.nats = NATS.connect({
-            reconnect:true
-        })
-
-        //const subTopic = os.hostname() + 'medianode' + process.pid
-
-        const subTopic = 'medianode'
-
-        this.nats.subscribe(subTopic, async (msg) => {
-            msg = JSON.parse(msg)
-            this.handleMessage(msg)
-        })
 
         const socket = io(params.uri, {
             transports: ['websocket'],
@@ -76,7 +53,7 @@ class Worker extends EventEmitter {
     async handleMessage(msg:Message) {
 
         console.dir(msg)
-        
+
         if (msg.name === 'newroom') {
             const capabilities = msg.data.capabilities
 
@@ -122,7 +99,7 @@ class Worker extends EventEmitter {
             this.channel.send(Message.reply(msg, {sdp: peer.getLocalSDP().toString()}))
 
             peer.on('addOutgoingStream', (outgoingStream) => {
-
+                
                 const message = Message.event({
                     room: room.getId(),
                     peer: peer.getId(),

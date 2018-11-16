@@ -1,11 +1,13 @@
 import * as dotenv from 'dotenv'
-import * as ip from 'ip'
 
 dotenv.config()
 
 import Worker from './worker'
 
+console.log(process.env)
+
 const worker = new Worker({
-    endpoint: process.env.ENDPOINT || ip.address()
+    uri: process.env.URI || 'http://localhost:3888/media',
+    endpoint: process.env.ENDPOINT || '127.0.0.1'
 })
 

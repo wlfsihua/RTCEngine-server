@@ -24,8 +24,9 @@ class Channel extends EventEmitter {
     constructor(socket:SocketIO.Socket) {
         super()
 
-        this.socket.on('channel', async (data:any) => {
+        this.socket = socket
 
+        this.socket.on('channel', async (data:any) => {
             if (data.id) {
                 const message = this.requestMap.get(data.id)
                 if(message) {
@@ -38,7 +39,6 @@ class Channel extends EventEmitter {
         })
 
         this.socket.on('disconnect', async () => {
-
             for (let msg of this.requestMap.values()) {
                 msg.reject && msg.reject()
             }
@@ -66,9 +66,8 @@ class Channel extends EventEmitter {
             }
             message.resolve = resolve
             message.reject = reject
-
+            
             this.requestMap.set(uid, message)
-
             this.socket.emit('channel', message.data)
         })
     }
