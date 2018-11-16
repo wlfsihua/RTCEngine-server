@@ -25,6 +25,8 @@ import apiRouter from './api'
 import socketHandle from './signalling'
 
 import NClient from './channel'
+import Channel from './channel2'
+
 
 class Server extends EventEmitter {
 
@@ -33,8 +35,7 @@ class Server extends EventEmitter {
 
     private rooms: Map<string, Room> = new Map()
     private peers: Set<Peer> = new Set()
-    private channel:NClient 
-    private medianode:string
+    private channels: Set<Channel> = new Set()
 
 
     constructor(params: any) {
@@ -49,31 +50,31 @@ class Server extends EventEmitter {
         //add routes
         this.routes()
 
-        // medianode 
-        this.medianode = 'medianode'
+        // // medianode 
+        // this.medianode = 'medianode'
 
-        //channel 
-        this.channel = new NClient('nave')
+        // //channel 
+        // this.channel = new NClient('nave')
 
-        this.channel.on('event', (msg) => {
 
-            if(this.rooms.get(msg.room) && this.rooms.get(msg.room).getPeer(msg.peer)) {
-                const peer = this.getRoom(msg.room).getPeer(msg.peer)
+        // this.channel.on('event', (msg) => {
+
+        //     if(this.rooms.get(msg.room) && this.rooms.get(msg.room).getPeer(msg.peer)) {
+        //         const peer = this.getRoom(msg.room).getPeer(msg.peer)
     
-                if (msg.name === 'addOutgoingStream') {
-                    const plaininfo = msg.data.stream
-                    const streamInfo = StreamInfo.expand(plaininfo)
-                    peer.addOutgoingStream(streamInfo)
-                }
+        //         if (msg.name === 'addOutgoingStream') {
+        //             const plaininfo = msg.data.stream
+        //             const streamInfo = StreamInfo.expand(plaininfo)
+        //             peer.addOutgoingStream(streamInfo)
+        //         }
 
-                if (msg.name === 'removeOutgoingStream') {
-                    const plaininfo = msg.data.stream
-                    const streamInfo = StreamInfo.expand(plaininfo)
-                    peer.removeOutgoingStream(streamInfo)
-                }
-            }
-        })
-
+        //         if (msg.name === 'removeOutgoingStream') {
+        //             const plaininfo = msg.data.stream
+        //             const streamInfo = StreamInfo.expand(plaininfo)
+        //             peer.removeOutgoingStream(streamInfo)
+        //         }
+        //     }
+        // })
 
     }
 
@@ -99,11 +100,9 @@ class Server extends EventEmitter {
         this.app.use(bodyParser.urlencoded({
             extended: true
         }))
-
     }
 
     private routes() {
-        //use router middleware
         this.app.use(apiRouter)
     }
 
@@ -124,10 +123,16 @@ class Server extends EventEmitter {
 
         // todo, random this  
         const internal = {
-            medianode:this.medianode
         }
 
-        const room = new Room(roomId, this.channel, internal)
+
+        // 
+        let random = Math.floor(Math.random() * this.channels.size)
+
+        const channel = Array.from(this.channels.values())[random]
+
+
+        const room = new Room(roomId, channel, internal)
 
         this.rooms.set(room.getId(), room)
 
@@ -142,25 +147,25 @@ class Server extends EventEmitter {
                 capabilities: config.media.capabilities
             }
         }
-
-        this.channel.request(this.medianode,data)
+        
+        channel.request(data)
             .then((msg) => {
-
+                
             })
             .catch((error) => {
                 room.close()
-            }) 
+            })
 
         return room
     }
 
-    public dumps() {
-        let info = []
-        for (const room of this.rooms.values()) {
-            info.push(room.dumps)
-        }
-        return info
+    public addChannel(channel: Channel) {
+
+        this.channels.add(channel)
+
+        channel.on('close', () => { this.channels.delete(channel) })
     }
+
 }
 
 

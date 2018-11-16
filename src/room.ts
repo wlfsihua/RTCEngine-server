@@ -6,6 +6,7 @@ import Peer from './peer'
 import config from './config'
 import Logger from './logger'
 import NClient from './channel'
+import Channel from './channel2'
 
 const log = new Logger('room')
 
@@ -16,10 +17,10 @@ export default class Room extends EventEmitter {
     private peers: Map<string, Peer>
     private attributes: Map<string, any>
     private bitrates: Map<string, any>
-    private channel: NClient
+    private channel: Channel
     private internal:any
 
-    constructor(room: string, channel:NClient, internal:any) {
+    constructor(room: string, channel:Channel, internal:any) {
 
         super()
         this.setMaxListeners(Infinity)
@@ -89,7 +90,7 @@ export default class Room extends EventEmitter {
             name:'removeroom'
         }
 
-        this.channel.request(this.internal.medianode, data)
+        this.channel.request(data)
         
         for (let peer of this.peers.values()) {
             peer.close()

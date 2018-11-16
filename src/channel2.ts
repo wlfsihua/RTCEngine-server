@@ -71,7 +71,12 @@ class Channel extends EventEmitter {
 
             this.socket.emit('channel', message.data)
         })
-
     }
-    
+
+    close() {
+        this.socket.disconnect()
+        this.emit('close')
+    }
 }
+
+export default Channel

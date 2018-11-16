@@ -3,7 +3,7 @@ import { EventEmitter } from 'events'
 import Room from './room'
 import config from './config'
 import Logger from './logger'
-import NClient from './channel';
+import Channel from './channel2';
 
 
 const SemanticSDP = require('semantic-sdp')
@@ -37,9 +37,9 @@ class Peer extends EventEmitter {
     private localSdp: any
     private remoteSdp: any
     private internal:any
-    private channel:NClient
+    private channel:Channel
 
-    constructor(peerId: string, channel:NClient,internal:any) {
+    constructor(peerId: string, channel:Channel,internal:any) {
         super()
 
         this.peerId = peerId
@@ -84,7 +84,7 @@ class Peer extends EventEmitter {
             }
         }
 
-        const ret = await this.channel.request(this.internal.medianode, data)
+        const ret = await this.channel.request(data)
 
         this.localSdp = SDPInfo.process(ret.sdp)
     }
@@ -108,7 +108,7 @@ class Peer extends EventEmitter {
             name: 'leave'
         }
 
-        await this.channel.request(this.internal.medianode, data)
+        await this.channel.request( data)
 
         this.emit('close')
     }
@@ -130,7 +130,7 @@ class Peer extends EventEmitter {
             }
         }
 
-        await this.channel.request(this.internal.medianode, data)
+        await this.channel.request(data)
 
     }
 
@@ -154,7 +154,7 @@ class Peer extends EventEmitter {
             }
         }
 
-        await this.channel.request(this.internal.medianode, data)
+        await this.channel.request(data)
     }
 
     public addOutgoingStream(streamInfo: any) {
@@ -188,7 +188,7 @@ class Peer extends EventEmitter {
             }
         }
 
-        await this.channel.request(this.internal.medianode, data)
+        await this.channel.request(data)
     }
 
     public dumps(): any {

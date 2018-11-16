@@ -18,6 +18,7 @@ import Room from './room'
 import Peer from './peer'
 import config from './config'
 import NClient from './channel'
+import Channel from './channel2'
 
 
 const socketServer = socketio({
@@ -26,7 +27,6 @@ const socketServer = socketio({
     transports: ['websocket']
 })
 
-const medianode = 'medianode'
 
 const setupSocketServer = async () => {
 
@@ -158,8 +158,13 @@ const setupSocketServer = async () => {
     })
 
 
-}
+    socketServer.of('/media').on('connection', async (socket: SocketIO.Socket) => {
 
+        const channel = new Channel(socket)
+        server.addChannel(channel)
+
+    })
+}
 
 export default {
     socketServer,
