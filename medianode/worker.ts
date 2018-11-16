@@ -1,8 +1,9 @@
-import * as SocketServer from 'socket.io'
 import { EventEmitter } from 'events'
 import Room from './room'
 import Peer from './peer'
 import Message from './message'
+import Channel from './channel'
+import * as io from 'socket.io-client'
 
 const SemanticSDP = require('semantic-sdp')
 
@@ -10,16 +11,8 @@ import * as NATS from 'nats'
 import * as os  from 'os'
 
 const SDPInfo = SemanticSDP.SDPInfo
-const MediaInfo = SemanticSDP.MediaInfo
-const CandidateInfo = SemanticSDP.CandidateInfo
-const DTLSInfo = SemanticSDP.DTLSInfo
-const ICEInfo = SemanticSDP.ICEInfo
-const StreamInfo = SemanticSDP.StreamInfo
-const TrackInfo = SemanticSDP.TrackInfo
-const Direction = SemanticSDP.Direction
-const CodecInfo = SemanticSDP.CodecInfo
 
-const MediaServer = require('medooze-media-server')
+
 
 class Worker extends EventEmitter {
 
@@ -27,6 +20,9 @@ class Worker extends EventEmitter {
     private rooms: Map<string, Room>
     private nats: NATS.Client
     private publicTopic: string
+
+    private channel:Channel
+
 
     constructor(params:any){
         super()
@@ -49,16 +45,38 @@ class Worker extends EventEmitter {
             msg = JSON.parse(msg)
             this.handleMessage(msg)
         })
+
+        const socket = io(params.uri, {
+            transports: ['websocket'],
+            query: {
+                id : os.hostname() + 'medianode' + process.pid
+            }
+        })
+
+        socket.on('disconnect', () => {
+            this.close()
+        })
+
+        socket.on('connect', () => {
+            console.log('connected to remote server')
+        })
+
+        this.channel = new Channel(socket)
+
+        this.channel.on('request', async (msg:Message) => {
+            this.handleMessage(msg)
+        })
+
     }
     /**
      * 
      * @param msg 
      * @param callback 
      */
-    async handleMessage(msg:any) {
+    async handleMessage(msg:Message) {
 
         console.dir(msg)
-
+        
         if (msg.name === 'newroom') {
             const capabilities = msg.data.capabilities
 
@@ -69,25 +87,25 @@ class Worker extends EventEmitter {
                 this.rooms.delete(room.getId())
             })
 
-            this.nats.publish(this.publicTopic, Message.reply(msg, {}).toString())
+            this.channel.send(Message.reply(msg,{}))
             return
         } 
 
         const room = this.rooms.get(msg.room)
 
         if (!room) {
-            this.nats.publish(this.publicTopic,Message.error(msg,'can not find room').toString())
+            this.channel.send(Message.error(msg,'can not find room'))
             return 
         }
 
         if (msg.name === 'removeroom') {
             room.close()
-            this.nats.publish(this.publicTopic, Message.reply(msg, {}).toString())
+            this.channel.send(Message.reply(msg))
             return
         }
 
         if (msg.name === 'join') {
-
+            
             const peer = new Peer(msg.peer)
             const sdp = msg.data.sdp
 
@@ -101,34 +119,33 @@ class Worker extends EventEmitter {
                 peer.addOutgoingStream(stream)
             }
 
-            this.nats.publish(this.publicTopic, Message.reply(msg, {
-                sdp: peer.getLocalSDP().toString()
-            }).toString())
+            this.channel.send(Message.reply(msg, {sdp: peer.getLocalSDP().toString()}))
 
             peer.on('addOutgoingStream', (outgoingStream) => {
 
-                this.nats.publish(this.publicTopic, JSON.stringify({
-                    type: 'event',
+                const message = Message.event({
                     room: room.getId(),
                     peer: peer.getId(),
                     name: 'addOutgoingStream',
                     data: {
                         stream: outgoingStream.getStreamInfo().plain()
                     }
-                }))
+                })
+                this.channel.send(message)
             })
 
             peer.on('removeOutgoingStream', (outgoingStream) => {
 
-                this.nats.publish(this.publicTopic, JSON.stringify({
-                    type: 'event',
+                const message = Message.event({
                     room: room.getId(),
                     peer: peer.getId(),
                     name: 'removeOutgoingStream',
                     data: {
                         stream: outgoingStream.getStreamInfo().plain()
                     }
-                }))
+                })
+
+                this.channel.send(message)
             })
 
             return
@@ -137,7 +154,7 @@ class Worker extends EventEmitter {
         const peer = room.getPeer(msg.peer)
 
         if (!peer) {
-            this.nats.publish(this.publicTopic,Message.error(msg,'can not find peer').toString())
+            this.channel.send(Message.error(msg,'can not find peer'))
             return
         }
 
@@ -146,7 +163,7 @@ class Worker extends EventEmitter {
             const streamId = msg.data.stream.streamId
             const streamInfo = sdp.getStream(streamId)
             peer.addStream(streamInfo)
-            this.nats.publish(this.publicTopic,Message.reply(msg).toString())
+            this.channel.send(Message.reply(msg))
             return
         }
 
@@ -155,7 +172,7 @@ class Worker extends EventEmitter {
             const streamId = msg.data.stream.streamId
             const stream = peer.getIncomingStreams().get(streamId)
             peer.removeStream(stream.getStreamInfo())
-            this.nats.publish(this.publicTopic, Message.reply(msg).toString())
+            this.channel.send(Message.reply(msg))
             return
         }
 
@@ -165,13 +182,12 @@ class Worker extends EventEmitter {
             const outgoingStream = peer.getOutgoingStreams().get(streamId)
 
             if (!outgoingStream) {
-                this.nats.publish(this.publicTopic, Message.error(msg,'can not find streamId' + streamId).toString())
+                this.channel.send(Message.error(msg,'can not find streamId' + streamId))
                 return
             }
 
             if ('video' in msg.data) {
                 let muting = msg.data.muting
-
                 for (let track of outgoingStream.getVideoTracks()) {
                     track.mute(muting)
                 }
@@ -185,17 +201,17 @@ class Worker extends EventEmitter {
                 }
             }
 
-            this.nats.publish(this.publicTopic, Message.reply(msg).toString())
+            this.channel.send(Message.reply(msg))
             return
         }
 
         if (msg.name === 'leave') {
-            this.nats.publish(this.publicTopic,Message.reply(msg).toString())
+            this.channel.send(Message.reply(msg))
             peer.close()
             return
         }
     }
-    
+
     close() {
 
         for(let room of this.rooms.values()) {

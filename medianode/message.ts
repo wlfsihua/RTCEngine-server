@@ -73,7 +73,17 @@ class Message {
             error: error
         }
         return msg
-    } 
+    }
+
+    static event(message:any): Message {
+        let msg = new Message()
+        msg.peer = message.peer
+        msg.room = message.room
+        msg.type = 'event'
+        msg.name = message.name
+        msg.data = message.data || {} 
+        return msg
+    }
 }
 
 export default Message
