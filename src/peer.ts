@@ -158,9 +158,8 @@ class Peer extends EventEmitter {
 
     public addOutgoingStream(streamInfo: any) {
 
-        this.outgoingStreams.delete(streamInfo.getId())
+        this.outgoingStreams.set(streamInfo.getId(), streamInfo)
         this.localSdp.addStream(streamInfo)
-        
         this.emit('renegotiationneeded', streamInfo)
     }
 
@@ -168,9 +167,11 @@ class Peer extends EventEmitter {
 
         if (this.outgoingStreams.get(streamInfo.getId())) {
             this.outgoingStreams.delete(streamInfo.getId())
-            this.localSdp.removeStream()
-
+            this.localSdp.removeStream(streamInfo)
             this.emit('renegotiationneeded', streamInfo)
+        } else {
+            console.log('removeOutgoingStream but can not find stream')
+            console.dir(this.localSdp)
         }
     }
 

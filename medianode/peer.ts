@@ -103,7 +103,6 @@ class Peer extends EventEmitter {
 
         const incomingStream = this.transport.createIncomingStream(streamInfo)
 
-    
         this.incomingStreams.set(incomingStream.getId(), incomingStream)
 
         process.nextTick(() => {
@@ -150,14 +149,16 @@ class Peer extends EventEmitter {
             if (this.localSdp) {
                 this.localSdp.removeStream(info)
             }
-
-            outgoingStream.stop()
-
+            
             let exist = this.outgoingStreams.delete(outgoingStream.getId())
 
             if (exist) {
                 this.emit('removeOutgoingStream', outgoingStream)
+            } else {
+                console.error('removeOutgoingStream but can not find ')
             }
+
+            outgoingStream.stop()
 
         })
 

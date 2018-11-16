@@ -79,7 +79,7 @@ class Server extends EventEmitter {
     private routes() {
         this.app.use(apiRouter)
     }
-    
+
     public getRooms(): Room[] {
         return Array.from(this.rooms.values())
     }
@@ -142,6 +142,8 @@ class Server extends EventEmitter {
                 if (msg.name === 'removeOutgoingStream') {
                     const plaininfo = msg.data.stream
                     const streamInfo = StreamInfo.expand(plaininfo)
+                    console.dir(plaininfo)
+                    console.dir(streamInfo)
                     peer.removeOutgoingStream(streamInfo)
                 }
             }

@@ -99,7 +99,7 @@ class Worker extends EventEmitter {
             this.channel.send(Message.reply(msg, {sdp: peer.getLocalSDP().toString()}))
 
             peer.on('addOutgoingStream', (outgoingStream) => {
-                
+
                 const message = Message.event({
                     room: room.getId(),
                     peer: peer.getId(),
@@ -121,7 +121,8 @@ class Worker extends EventEmitter {
                         stream: outgoingStream.getStreamInfo().plain()
                     }
                 })
-
+                console.log('removeOutgoingStream =============================')
+                console.dir(message)
                 this.channel.send(message)
             })
 

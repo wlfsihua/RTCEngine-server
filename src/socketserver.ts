@@ -76,6 +76,7 @@ class SocketServer extends EventEmitter {
                 })
     
                 peer.on('renegotiationneeded', () => {
+                    console.log('renegotiationneeded')
                     socket.emit('offer', {
                         sdp: peer.getLocalSDP().toString(),
                         room: room.dumps()
