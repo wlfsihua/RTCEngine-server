@@ -3,7 +3,7 @@ import { EventEmitter } from 'events'
 import Room from './room'
 import config from './config'
 import Logger from './logger'
-import Channel from './channel2';
+import Channel from './channel'
 
 
 const SemanticSDP = require('semantic-sdp')
@@ -19,7 +19,6 @@ const Direction = SemanticSDP.Direction
 const CodecInfo = SemanticSDP.CodecInfo
 
 const log = new Logger('peer')
-
 
 class Peer extends EventEmitter {
 

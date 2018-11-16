@@ -1,8 +1,11 @@
-
-import * as NATS from 'nats'
 import { EventEmitter } from 'events'
 
 import * as randomstring from 'randomstring'
+
+
+interface ChannelInterface {
+
+}
 
 
 interface Message {
@@ -13,41 +16,41 @@ interface Message {
     expire?:number 
 }
 
+class Channel extends EventEmitter {
 
-class NClient extends EventEmitter {
-
-    private nats:NATS.Client
+    private socket: SocketIO.Socket 
     private requestMap: Map<string,Message> = new Map()
-    private subTopic:string
 
-    constructor(subTopic:string) {
+    constructor(socket:SocketIO.Socket) {
         super()
 
-        this.nats = NATS.connect({
-            reconnect:true
-        })
+        this.socket = socket
 
-        this.subTopic = subTopic
-
-        this.nats.subscribe(this.subTopic, async (msg) => {
-            msg = JSON.parse(msg)
-            if (msg.id) {
-                const message = this.requestMap.get(msg.id)
+        this.socket.on('channel', async (data:any) => {
+            if (data.id) {
+                const message = this.requestMap.get(data.id)
                 if(message) {
-                    this.requestMap.delete(msg.id)
-                    message.resolve(msg.data)
+                    this.requestMap.delete(data.id)
+                    message.resolve(data.data)
                 }
             } else {
-                this.emit('event', msg)
-                console.log('subscribe============')
-                console.dir(msg)
+                this.emit('event', data)
             }
+        })
+
+        this.socket.on('disconnect', async () => {
+            for (let msg of this.requestMap.values()) {
+                msg.reject && msg.reject()
+            }
+            this.requestMap.clear()
+            this.emit('close')
         })
     }
 
-    request(node:string,data:any) {
-        
+    async request(data) {
+
         return new Promise((resolve:(data:any) => void,reject) => {
+
             const uid = randomstring.generate(12)
             const message:Message = {
                 transaction:uid,
@@ -63,20 +66,16 @@ class NClient extends EventEmitter {
             }
             message.resolve = resolve
             message.reject = reject
-
+            
             this.requestMap.set(uid, message)
-
-            console.log('publish==============')
-            console.dir(message.data)
-
-            this.nats.publish(node, JSON.stringify(message.data), () => {
-            })
+            this.socket.emit('channel', message.data)
         })
+    }
 
+    close() {
+        this.socket.disconnect()
+        this.emit('close')
     }
 }
 
-export default NClient
-
-
-
+export default Channel

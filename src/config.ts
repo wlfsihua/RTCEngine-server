@@ -1,15 +1,9 @@
-
 export default {
-    medianode: 'http://localhost:4000/',
+
     server: {
         secret: 'test_secret',
-        externalUrl: 'http://127.0.0.1:3888/'
+        externalUrl: 'http://127.0.0.1:3888/channel'
     },
-    // iceServer: {
-    //     urls: ['101.201.141.179:3478', '101.201.141.179:3478'],
-    //     secret: 'dotEngine_turn001',
-    //     transports: ['udp', 'tcp']
-    // },
     etcd: {
         hosts:'127.0.0.1:2379'
     },

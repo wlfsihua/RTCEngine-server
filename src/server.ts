@@ -24,8 +24,7 @@ import config from './config'
 import apiRouter from './api'
 import socketHandle from './signalling'
 
-import NClient from './channel'
-import Channel from './channel2'
+import Channel from './channel'
 
 
 class Server extends EventEmitter {

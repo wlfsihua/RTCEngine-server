@@ -1,12 +1,9 @@
 import { EventEmitter } from 'events'
 
-const MediaServer = require('medooze-media-server')
-
 import Peer from './peer'
 import config from './config'
 import Logger from './logger'
-import NClient from './channel'
-import Channel from './channel2'
+import Channel from './channel'
 
 const log = new Logger('room')
 

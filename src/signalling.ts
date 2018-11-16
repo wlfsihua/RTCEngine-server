@@ -30,8 +30,17 @@ const socketServer = socketio({
 
 const setupSocketServer = async () => {
 
+    
+    socketServer.of('/media').on('connection', async (socket: SocketIO.Socket) => {
+        console.dir(socket.handshake.query)
+        const channel = new Channel(socket)
+        server.addChannel(channel)
+    })
 
-    socketServer.on('connection', async (socket: SocketIO.Socket) => {
+
+    socketServer.of('/channel').on('connection', async (socket: SocketIO.Socket) => {
+
+        console.dir(socket.handshake.query)
 
         let token = socket.handshake.query.token
 
@@ -158,12 +167,6 @@ const setupSocketServer = async () => {
     })
 
 
-    socketServer.of('/media').on('connection', async (socket: SocketIO.Socket) => {
-
-        const channel = new Channel(socket)
-        server.addChannel(channel)
-
-    })
 }
 
 export default {
