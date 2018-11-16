@@ -22,9 +22,8 @@ import Peer from './peer'
 import config from './config'
 
 import apiRouter from './api'
-import socketHandle from './signalling'
-
 import Channel from './channel'
+import SocketServer from './socketserver'
 
 
 class Server extends EventEmitter {
@@ -35,7 +34,7 @@ class Server extends EventEmitter {
     private rooms: Map<string, Room> = new Map()
     private peers: Set<Peer> = new Set()
     private channels: Set<Channel> = new Set()
-
+    private socketServer: SocketServer
 
     constructor(params: any) {
         //create expressjs application
@@ -48,41 +47,17 @@ class Server extends EventEmitter {
 
         //add routes
         this.routes()
-
-        // // medianode 
-        // this.medianode = 'medianode'
-
-        // //channel 
-        // this.channel = new NClient('nave')
-
-
-        // this.channel.on('event', (msg) => {
-
-        //     if(this.rooms.get(msg.room) && this.rooms.get(msg.room).getPeer(msg.peer)) {
-        //         const peer = this.getRoom(msg.room).getPeer(msg.peer)
-    
-        //         if (msg.name === 'addOutgoingStream') {
-        //             const plaininfo = msg.data.stream
-        //             const streamInfo = StreamInfo.expand(plaininfo)
-        //             peer.addOutgoingStream(streamInfo)
-        //         }
-
-        //         if (msg.name === 'removeOutgoingStream') {
-        //             const plaininfo = msg.data.stream
-        //             const streamInfo = StreamInfo.expand(plaininfo)
-        //             peer.removeOutgoingStream(streamInfo)
-        //         }
-        //     }
-        // })
-
     }
 
     public start(port: number, hostname: string, callback?: Function) {
 
         this.httpServer = this.app.listen(port, hostname, callback)
 
-        this.startSocketServer()
+        this.socketServer = new SocketServer(this.httpServer)
 
+        this.socketServer.on('channel', (channel:Channel) => {
+            this.addChannel(channel)
+        })
     }
     
     private config() {
@@ -104,12 +79,7 @@ class Server extends EventEmitter {
     private routes() {
         this.app.use(apiRouter)
     }
-
-    private startSocketServer() {
-        socketHandle.socketServer.attach(this.httpServer)
-        socketHandle.setupSocketServer()
-    }
-
+    
     public getRooms(): Room[] {
         return Array.from(this.rooms.values())
     }
@@ -153,7 +123,7 @@ class Server extends EventEmitter {
         return room
     }
 
-    public addChannel(channel: Channel) {
+    private addChannel(channel: Channel) {
 
         this.channels.add(channel)
 
