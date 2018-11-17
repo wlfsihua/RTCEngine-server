@@ -34,7 +34,6 @@ class Room extends EventEmitter {
             if (peerId) {
                 this.emit('activespeakerchanged', peerId)
             }
-
         })
     }
 

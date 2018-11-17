@@ -23,10 +23,9 @@ const genRestTurn = (host: string, port: number, transports: string[], secret: s
         username: username,
         credential: credential
     }
-
+    
     return iceServer
 }
-
 
 
 export default {

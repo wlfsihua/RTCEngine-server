@@ -21,7 +21,6 @@ interface IncomingInterface {
 }
 
 
-
 class Router extends EventEmitter {
 
     private routerId:string
@@ -78,7 +77,7 @@ class Router extends EventEmitter {
         outgoingStream.stop()
     } 
     addOutgoingStream(incomingStream:any,transportId:string) {
-
+        
     }
     removeOutgoingStream() {
 

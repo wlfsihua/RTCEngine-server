@@ -149,7 +149,7 @@ class Peer extends EventEmitter {
             if (this.localSdp) {
                 this.localSdp.removeStream(info)
             }
-            
+
             let exist = this.outgoingStreams.delete(outgoingStream.getId())
 
             if (exist) {
@@ -157,9 +157,7 @@ class Peer extends EventEmitter {
             } else {
                 console.error('removeOutgoingStream but can not find ')
             }
-
             outgoingStream.stop()
-
         })
 
         if (emit) {

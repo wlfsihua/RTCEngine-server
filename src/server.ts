@@ -8,12 +8,6 @@ import * as net from 'net'
 import * as cors from 'cors'
 
 const SemanticSDP = require('semantic-sdp')
-
-const SDPInfo = SemanticSDP.SDPInfo
-const MediaInfo = SemanticSDP.MediaInfo
-const CandidateInfo = SemanticSDP.CandidateInfo
-const DTLSInfo = SemanticSDP.DTLSInfo
-const ICEInfo = SemanticSDP.ICEInfo
 const StreamInfo = SemanticSDP.StreamInfo
 
 
@@ -33,7 +27,7 @@ class Server extends EventEmitter {
 
     private rooms: Map<string, Room> = new Map()
     private peers: Set<Peer> = new Set()
-    private channels: Set<Channel> = new Set()
+    private channels: Map<string,Channel> = new Map()
     private socketServer: SocketServer
 
     constructor(params: any) {
@@ -89,10 +83,10 @@ class Server extends EventEmitter {
     }
 
     public Room(roomId: string):Room {
-        // todo, random this  
-        const internal = {
-        }
 
+        const internal = {}
+
+        // get a random medianode
         let random = Math.floor(Math.random() * this.channels.size)
         const channel = Array.from(this.channels.values())[random]
 
@@ -104,6 +98,10 @@ class Server extends EventEmitter {
             this.rooms.delete(room.getId())
         })
 
+        channel.on('close', () => {
+            room.close()
+        })
+        
         const data = {
             room: roomId,
             name: 'newroom',
@@ -125,9 +123,15 @@ class Server extends EventEmitter {
 
     private addChannel(channel: Channel) {
 
-        this.channels.add(channel)
+        // we should close the old one if we have the same name 
+        if (this.channels.get(channel.getId())) {
+            const oldChannel = this.channels.get(channel.getId())
+            oldChannel.close()
+        }
 
-        channel.on('close', () => { this.channels.delete(channel) })
+        this.channels.set(channel.getId(),channel)
+
+        channel.on('close', () => { this.channels.delete(channel.getId()) })
 
         channel.on('event', (msg) => {
             if(this.rooms.get(msg.room) && this.rooms.get(msg.room).getPeer(msg.peer)) {

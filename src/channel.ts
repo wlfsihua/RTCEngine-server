@@ -18,14 +18,15 @@ interface Message {
 
 class Channel extends EventEmitter {
 
+    private id:string
     private socket: SocketIO.Socket 
     private requestMap: Map<string,Message> = new Map()
 
-    constructor(socket:SocketIO.Socket) {
+    constructor(id:string,socket:SocketIO.Socket) {
         super()
 
+        this.id = id
         this.socket = socket
-
         this.socket.on('channel', async (data:any) => {
             if (data.id) {
                 const message = this.requestMap.get(data.id)
@@ -45,6 +46,10 @@ class Channel extends EventEmitter {
             this.requestMap.clear()
             this.emit('close')
         })
+    }
+    
+    getId(): string {
+        return this.id
     }
 
     async request(data) {

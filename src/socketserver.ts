@@ -30,9 +30,10 @@ class SocketServer extends EventEmitter {
         this.socketServer.attach(httpserver) 
 
         this.socketServer.of('/media').on('connection', async (socket: SocketIO.Socket) => {
-
+            
             console.dir(socket.handshake.query)
-            const channel = new Channel(socket)
+            const id = socket.handshake.query.id 
+            const channel = new Channel(id,socket)
             this.emit('channel', channel)
         })
 

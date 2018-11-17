@@ -11,7 +11,6 @@ class Channel extends EventEmitter {
 
         this.socket = socket
         this.socket.on('channel', (data:any) => {
-
             if (data.id) {
                 const message = Message.messageFactory(data)
                 this.emit('request', message)
