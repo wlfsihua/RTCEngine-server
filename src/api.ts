@@ -22,7 +22,7 @@ apiRouter.post('/api/generateToken', async (req: Request, res: Response) => {
     let user = req.body.user
 
     let secret = config.server.secret
-
+    
     let iceServers = []
 
     for (let server of config.iceServers) {

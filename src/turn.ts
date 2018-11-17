@@ -2,8 +2,6 @@
 
 import * as uuid from 'uuid'
 import * as crypto from 'crypto'
-
-
 import * as util from 'util'
 
 
@@ -23,7 +21,7 @@ const genRestTurn = (host: string, port: number, transports: string[], secret: s
         username: username,
         credential: credential
     }
-    
+
     return iceServer
 }
 
