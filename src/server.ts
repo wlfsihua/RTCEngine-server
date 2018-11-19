@@ -18,7 +18,7 @@ import config from './config'
 import apiRouter from './api'
 import Channel from './channel'
 import SocketServer from './socketserver'
-
+import etc from './etcd'
 
 class Server extends EventEmitter {
 
@@ -46,6 +46,8 @@ class Server extends EventEmitter {
     public start(port: number, hostname: string, callback?: Function) {
 
         this.httpServer = this.app.listen(port, hostname, callback)
+
+        etc.registerService()
 
         this.socketServer = new SocketServer(this.httpServer)
 
@@ -117,7 +119,7 @@ class Server extends EventEmitter {
             .catch((error) => {
                 room.close()
             })
-
+            
         return room
     }
 
@@ -146,8 +148,6 @@ class Server extends EventEmitter {
                 if (msg.name === 'removeOutgoingStream') {
                     const plaininfo = msg.data.stream
                     const streamInfo = StreamInfo.expand(plaininfo)
-                    console.dir(plaininfo)
-                    console.dir(streamInfo)
                     peer.removeOutgoingStream(streamInfo)
                 }
             }

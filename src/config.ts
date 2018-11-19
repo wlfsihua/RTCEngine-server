@@ -1,5 +1,4 @@
 export default {
-
     server: {
         secret: 'test_secret',
         externalUrl: 'http://127.0.0.1:3888/channel'
