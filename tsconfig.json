@@ -57,6 +57,7 @@
   "include": [
     "server.ts",
     "src/**/*.ts",
-    "src/*.ts"
+    "src/*.ts",
+    "medianode/*.ts"
   ]
 }
