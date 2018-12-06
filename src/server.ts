@@ -90,6 +90,8 @@ class Server extends EventEmitter {
         let random = Math.floor(Math.random() * this.channels.size)
         const channel = Array.from(this.channels.values())[random]
 
+        console.log('got channel11111111111')
+        
         const room = new Room(roomId, channel, internal)
 
         this.rooms.set(room.getId(), room)
@@ -109,10 +111,11 @@ class Server extends EventEmitter {
                 capabilities: config.media.capabilities
             }
         }
-        
+
+        console.log('channel request 222222222222')
         channel.request(data)
             .then((msg) => {
-                
+                console.log('after request  333333333333333')
             })
             .catch((error) => {
                 room.close()

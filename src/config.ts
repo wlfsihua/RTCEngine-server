@@ -2,7 +2,7 @@ export default {
 
     server: {
         secret: 'test_secret',
-        externalUrl: 'http://127.0.0.1:3888/channel'
+        externalUrl: 'http://192.168.212.28:3888/channel'
     },
     etcd: {
         hosts:'127.0.0.1:2379'
@@ -22,7 +22,6 @@ export default {
     },
     media: {
         debug: true,
-        endpoint: '127.0.0.1',
         ultraDebug: true,
         rtcMinPort: 10000,
         rtcMaxPort: 10002,

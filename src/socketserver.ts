@@ -56,12 +56,17 @@ class SocketServer extends EventEmitter {
 
             socket.on('join', async (data: any, callback?: Function) => {
 
+                console.log('join')
+
                 socket.join(roomId)
 
                 const sdp = data.sdp
 
                 // remote join 
                 await peer.join(room, sdp)
+
+                console.log('after join room ', room)
+
                 const streams = room.getIncomingStreams()
                 for (let stream of streams.values()) {
                     peer.addOutgoingStream(stream)
