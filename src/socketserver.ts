@@ -35,6 +35,7 @@ class SocketServer extends EventEmitter {
             const id = socket.handshake.query.id 
             const channel = new Channel(id,socket)
             this.emit('channel', channel)
+            
         })
 
         this.socketServer.of('/channel').on('connection', async (socket: SocketIO.Socket) => {

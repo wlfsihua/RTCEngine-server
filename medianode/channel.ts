@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events'
-
+import * as io from 'socket.io-client'
 import Message from './message'
 
 class Channel extends EventEmitter {

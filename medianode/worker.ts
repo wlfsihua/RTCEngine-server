@@ -13,7 +13,6 @@ class Worker extends EventEmitter {
 
     private params:any
     private rooms: Map<string, Room>
-    private publicTopic: string
     private channel:Channel
 
     constructor(params:any){
@@ -25,6 +24,7 @@ class Worker extends EventEmitter {
 
         const socket = io(params.uri, {
             transports: ['websocket'],
+            reconnection: true,
             query: {
                 id : os.hostname() + 'medianode' + process.pid
             }

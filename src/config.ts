@@ -2,18 +2,18 @@ export default {
 
     server: {
         secret: 'test_secret',
-        externalUrl: 'http://192.168.212.28:3888/channel'
+        externalUrl: 'http://127.0.0.1:3888/channel'
     },
     etcd: {
         hosts:'127.0.0.1:2379'
     },
     iceServers: [
-        {
-            host: '101.201.141.179',
-            port: 3478,
-            secret: 'dotEngine_turn001',
-            transports: ['udp', 'tcp']
-        }
+        // {
+        //     host: '101.201.141.179',
+        //     port: 3478,
+        //     secret: 'dotEngine_turn001',
+        //     transports: ['udp', 'tcp']
+        // }
     ],
     recorder: {
         enable: true,
@@ -35,9 +35,10 @@ export default {
                 ]
             },
             video: {
-                codecs: ['vp8','h264;packetization-mode=1'],
+                codecs: ['vp8'],
                 rtx: true,
                 rtcpfbs: [
+                    { 'id': 'goog-remb' },
                     { 'id': 'transport-cc' },
                     { "id": "ccm", "params": ["fir"] },
                     { "id": "nack" },
